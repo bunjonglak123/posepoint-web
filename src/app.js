@@ -130,7 +130,7 @@ window.posepoint = {
   async runVideoUrl(url) {
     await ensureReady();
     video.srcObject = null; video.src = url; video.muted = true;
-    await new Promise(r => { video.onloadeddata = r; });
+    await new Promise((res, rej) => { video.onloadeddata = res; video.onerror = () => rej(new Error("โหลดวิดีโอไม่ได้ (ไม่มี sample บนเว็บโฮสต์ — ใช้กล้องหรือเลือกไฟล์แทน)")); });
     resize(); beginSession();
     await new Promise(r => { video.onended = r; video.play(); });
     running = false;
@@ -141,7 +141,9 @@ window.posepoint = {
 
 $("btnCamera").onclick = () => startCamera().catch(e => statusEl.textContent = "Error: " + e.message);
 $("btnStop").onclick = () => stopSession();
-$("btnSample").onclick = () => window.posepoint.runVideoUrl("sample.mp4").then(r => statusEl.textContent = `sample: ${r.reps} reps`);
+$("btnSample").onclick = () => window.posepoint.runVideoUrl("sample.mp4")
+  .then(r => statusEl.textContent = `sample: ${r.reps} reps`)
+  .catch(e => statusEl.textContent = e.message);
 $("file").onchange = (e) => { if (e.target.files[0]) runFile(e.target.files[0]); };
 
 renderLeaderboard().catch(() => {});
