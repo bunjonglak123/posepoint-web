@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="36" fill="#0e1116"/>
+  <circle cx="96" cy="56" r="18" fill="#7ee787"/>
+  <path d="M40 120 L80 100 L120 116 L152 96" stroke="#4ea1ff" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="96" y="168" font-family="Segoe UI,sans-serif" font-size="26" fill="#e6edf3" text-anchor="middle" font-weight="700">PP</text>
+</svg>

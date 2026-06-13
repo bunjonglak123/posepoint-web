@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1116">
+<link rel="manifest" href="manifest.webmanifest">
+<title>PosePoint — Push-up Counter</title>
+<style>
+  :root { --bg:#0e1116; --panel:#161b22; --line:#2b333d; --ink:#e6edf3; --accent:#4ea1ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:"Segoe UI",system-ui,sans-serif; }
+  header { padding:14px 16px; border-bottom:1px solid var(--line); }
+  header h1 { margin:0; font-size:18px; }
+  header span { color:#9aa7b4; font-size:13px; }
+  main { max-width:680px; margin:0 auto; padding:16px; }
+  .stage { position:relative; background:#000; border-radius:12px; overflow:hidden; aspect-ratio:4/3; }
+  video { width:100%; height:100%; object-fit:contain; display:block; }
+  canvas { position:absolute; inset:0; width:100%; height:100%; }
+  .hud { position:absolute; top:8px; left:10px; right:10px; display:flex; justify-content:space-between; pointer-events:none; }
+  .hud #rep { font-weight:700; font-size:18px; text-shadow:0 1px 3px #000; }
+  .hud #last { font-weight:700; font-size:15px; text-shadow:0 1px 3px #000; }
+  .controls { display:flex; gap:8px; flex-wrap:wrap; margin:14px 0; }
+  button, label.file { background:var(--accent); color:#04121f; border:0; border-radius:8px; padding:10px 16px; font-weight:600; cursor:pointer; }
+  label.file { display:inline-block; }
+  button.ghost { background:var(--panel); color:var(--ink); border:1px solid var(--line); }
+  input[type=file] { display:none; }
+  #status { color:#9aa7b4; margin:8px 0; }
+  ul { padding-left:18px; } li { margin:2px 0; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-top:14px; }
+  #leaderboard div { margin:3px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PosePoint</h1>
+  <span>นับ + ตรวจฟอร์มวิดพื้น · on-device (MediaPipe Tasks Web)</span>
+</header>
+<main>
+  <div class="stage">
+    <video id="video" playsinline muted></video>
+    <canvas id="overlay"></canvas>
+    <div class="hud"><div id="rep">Reps: 0</div><div id="last"></div></div>
+  </div>
+  <div class="controls">
+    <button id="btnCamera">เริ่มกล้อง</button>
+    <button id="btnStop" class="ghost">หยุด/สรุป</button>
+    <label class="file ghost">เลือกไฟล์วิดีโอ<input id="file" type="file" accept="video/*"></label>
+    <button id="btnSample" class="ghost">ทดสอบ sample</button>
+  </div>
+  <div id="status">โหลดหน้าเสร็จ — กดเริ่มกล้องหรือเลือกไฟล์</div>
+  <div class="panel"><b>ผลแต่ละ rep</b><ul id="results"></ul></div>
+  <div class="panel" id="leaderboard"></div>
+  <div class="panel" style="font-size:13px; color:#9aa7b4;">
+    หมายเหตุ: คลิปท่อนบน (ไม่เห็นสะโพก/เข่า/ข้อเท้า) จะวัดได้แค่เกณฑ์ศอก+ความลึก
+    ส่วนหลัง/เข่าจะถูก skip. อยากครบ 4 เกณฑ์ให้ถ่ายเต็มตัวมุมข้าง.
+  </div>
+</main>
+<script type="module" src="src/app.js"></script>
+</body>
+</html>

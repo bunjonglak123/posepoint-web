@@ -1,0 +1,10 @@
+{
+  "name": "pushup-web",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "PosePoint — web push-up form counter (MediaPipe Tasks Web + PWA)",
+  "scripts": {
+    "test": "node --test tests/",
+    "serve": "node server.js"
+  }
+}
