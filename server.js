@@ -1,8 +1,11 @@
 // static server ขั้นต่ำ (ไม่มี dependency) — รันบน localhost (secure context สำหรับกล้อง/MediaPipe)
-import { createServer } from "node:http";
+import { createServer as createHttp } from "node:http";
+import { createServer as createHttps } from "node:https";
 import { readFile } from "node:fs/promises";
+import { readFileSync, existsSync } from "node:fs";
 import { extname, join, normalize, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { networkInterfaces } from "node:os";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 5173;
@@ -13,7 +16,7 @@ const MIME = {
   ".css": "text/css", ".task": "application/octet-stream"
 };
 
-createServer(async (req, res) => {
+const handler = async (req, res) => {
   try {
     let p = decodeURIComponent(new URL(req.url, "http://x").pathname);
     if (p === "/") p = "/index.html";
@@ -25,4 +28,20 @@ createServer(async (req, res) => {
   } catch {
     res.writeHead(404).end("not found");
   }
-}).listen(PORT, () => console.log(`serving ${ROOT} at http://localhost:${PORT}`));
+};
+
+const lanIp = Object.values(networkInterfaces()).flat()
+  .find(n => n && n.family === "IPv4" && !n.internal)?.address || "localhost";
+
+const useHttps = existsSync(join(ROOT, "cert.pem")) && existsSync(join(ROOT, "key.pem"));
+const scheme = useHttps ? "https" : "http";
+const server = useHttps
+  ? createHttps({ cert: readFileSync(join(ROOT, "cert.pem")), key: readFileSync(join(ROOT, "key.pem")) }, handler)
+  : createHttp(handler);
+
+// bind 0.0.0.0 เพื่อให้มือถือใน WiFi เดียวกันเข้าได้
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`serving ${ROOT}`);
+  console.log(`  local : ${scheme}://localhost:${PORT}`);
+  console.log(`  phone : ${scheme}://${lanIp}:${PORT}   (WiFi เดียวกัน; ยอมรับ cert warning)`);
+});
