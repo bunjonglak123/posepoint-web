@@ -1,7 +1,8 @@
 // service worker ขั้นต่ำ — cache app shell ให้ทำงานออฟไลน์ (PWA)
-const CACHE = "posepoint-v1";
+const CACHE = "posepoint-v2";
 const SHELL = [
   "./", "index.html", "manifest.webmanifest", "icon.svg",
+  "icon-192.png", "icon-512.png", "icon-maskable-512.png",
   "src/app.js", "src/config.js", "src/geometry.js", "src/landmarks.js",
   "src/features.js", "src/counter.js", "src/criteria.js", "src/scoring.js",
   "src/leaderboard.js", "src/poseService.js", "src/store.js"
