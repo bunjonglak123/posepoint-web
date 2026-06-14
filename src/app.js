@@ -16,6 +16,35 @@ const statStreak = $("statStreak"), statScore = $("statScore"), statCorrect = $(
 const DETECT_INTERVAL = 1000 / 24;   // จำกัด detection ~24fps (กัน backlog/ค้าง)
 let lastDetect = 0, fpsCount = 0, fpsT = 0;
 
+const targetRow = $("targetRow"), targetInput = $("targetInput"), targetLabel = $("targetLabel"), targetUnit = $("targetUnit");
+const timerEl = $("timer"), countdownEl = $("countdown"), countNum = $("countNum");
+const summaryEl = $("summary"), summaryTitle = $("summaryTitle");
+const sumReps = $("sumReps"), sumCorrect = $("sumCorrect"), sumScore = $("sumScore"), sumTime = $("sumTime");
+
+const MODE_LABEL = { free: "Freestyle", reps: "Reps Goal", time: "Time Attack" };
+let mode = "free", target = 20, ended = false;
+
+function setMode(m) {
+  mode = m;
+  for (const [id, mm] of [["modeFree", "free"], ["modeReps", "reps"], ["modeTime", "time"]]) {
+    const on = mm === m;
+    $(id).classList.toggle("active", on);
+    $(id).setAttribute("aria-selected", on ? "true" : "false");
+  }
+  if (m === "free") { targetRow.hidden = true; }
+  else {
+    targetRow.hidden = false;
+    targetLabel.textContent = m === "reps" ? "จำนวนครั้ง" : "เวลา (วินาที)";
+    targetUnit.textContent = m === "reps" ? "ครั้ง" : "วินาที";
+    targetInput.value = m === "reps" ? 20 : 30;
+  }
+}
+
+function fmtTime(s) {
+  s = Math.max(0, Math.ceil(s));
+  return s >= 60 ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : `${s}s`;
+}
+
 let counter = null, results = [], running = false, ready = false, startMs = 0, streak = 0, facing = "environment";
 
 function pulse(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
@@ -85,9 +114,20 @@ function renderRep(res) {
   resultsEl.appendChild(li);
 }
 
+function checkEnd(now) {
+  if (mode === "reps" && counter && counter.count >= target) { endWorkout("ครบเป้าหมาย! 🎯"); return true; }
+  if (mode === "time") {
+    const rem = target - (now - startMs) / 1000;
+    timerEl.textContent = fmtTime(rem);
+    if (rem <= 0) { endWorkout("หมดเวลา!"); return true; }
+  }
+  return false;
+}
+
 function loop() {
   if (!running) return;
   const now = performance.now();
+  if (checkEnd(now)) return;
   if (video.readyState >= 2 && now - lastDetect >= DETECT_INTERVAL) {
     lastDetect = now;
     processFrame(now);
@@ -108,12 +148,29 @@ async function openCamera() {
 
 function camActive() { return !!video.srcObject; }
 
+function countdown() {
+  return new Promise((resolve) => {
+    let n = 3;
+    countdownEl.hidden = false;
+    const tick = () => {
+      if (n > 0) { countNum.textContent = n; countNum.className = "anim"; }
+      else { countNum.textContent = "GO"; countNum.className = "go anim"; }
+      void countNum.offsetWidth;
+      if (n < 0) { countdownEl.hidden = true; resolve(); return; }
+      n--; setTimeout(tick, 700);
+    };
+    tick();
+  });
+}
+
 async function startCamera() {
   const btn = $("btnCamera");
   btn.disabled = true;
   try {
     await ensureReady();
+    target = Math.max(1, parseInt(targetInput.value, 10) || (mode === "reps" ? 20 : 30));
     await openCamera();
+    await countdown();
     beginSession();
   } finally {
     btn.disabled = false;
@@ -139,20 +196,43 @@ function beginSession() {
   if (resultsEmpty) resultsEmpty.style.display = "";
   repEl.textContent = "0"; streak = 0; updateStats();
   lastDetect = 0; fpsCount = 0; fpsT = performance.now(); fpsEl.textContent = "";
-  running = true; startMs = performance.now(); statusEl.textContent = "กำลังจับท่า…"; loop();
+  ended = false; summaryEl.hidden = true;
+  timerEl.hidden = mode !== "time";
+  if (mode === "time") timerEl.textContent = fmtTime(target);
+  running = true; startMs = performance.now();
+  statusEl.textContent = mode === "reps" ? `เป้า ${target} ครั้ง — เริ่ม!`
+    : mode === "time" ? `จับเวลา ${fmtTime(target)} — เริ่ม!` : "กำลังจับท่า…";
+  loop();
+}
+
+async function endWorkout(title) {
+  if (ended) return;
+  ended = true; running = false; timerEl.hidden = true;
+  if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
+  await finalize();
+  showSummary(title);
+}
+
+function showSummary(title) {
+  summaryTitle.textContent = title;
+  const correct = results.filter(r => r.verdict === "CORRECT").length;
+  sumReps.textContent = results.length;
+  sumCorrect.textContent = correct;
+  sumScore.textContent = results.length ? Math.round(sessionScore(results)) : 0;
+  sumTime.textContent = fmtTime((performance.now() - startMs) / 1000);
+  summaryEl.hidden = false;
 }
 
 async function stopSession() {
-  running = false;
-  if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
-  await finalize();
+  if (!running) return;
+  await endWorkout("จบเซต");
 }
 
 async function finalize() {
   if (!results.length) { statusEl.textContent = "ไม่พบ rep"; return; }
   const correct = results.filter(r => r.verdict === "CORRECT").length;
   const sess = {
-    sessionId: crypto.randomUUID(), user: "local", mode: "Freestyle",
+    sessionId: crypto.randomUUID(), user: "local", mode: MODE_LABEL[mode],
     repsCompleted: results.length, correctCount: correct,
     avgScore: Math.round(sessionScore(results) * 10) / 10,
     durationS: Math.round((performance.now() - startMs) / 1000),
@@ -199,6 +279,10 @@ window.posepoint = {
 
 $("btnCamera").onclick = () => startCamera().catch(e => statusEl.textContent = "Error: " + e.message);
 $("btnFlip").onclick = () => flipCamera();
+$("modeFree").onclick = () => setMode("free");
+$("modeReps").onclick = () => setMode("reps");
+$("modeTime").onclick = () => setMode("time");
+$("btnAgain").onclick = () => { summaryEl.hidden = true; startCamera().catch(e => statusEl.textContent = "Error: " + e.message); };
 $("btnStop").onclick = () => stopSession();
 $("btnSample").onclick = () => window.posepoint.runVideoUrl("sample.mp4")
   .then(r => statusEl.textContent = `sample: ${r.reps} reps`)
