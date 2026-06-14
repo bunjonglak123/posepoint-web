@@ -11,8 +11,20 @@ import { saveSession, listSessions } from "./store.js";
 const $ = (id) => document.getElementById(id);
 const video = $("video"), canvas = $("overlay"), ctx = canvas.getContext("2d");
 const statusEl = $("statusText"), repEl = $("rep"), lastEl = $("last"), resultsEl = $("results"), lbEl = $("leaderboard"), resultsEmpty = $("resultsEmpty");
+const statStreak = $("statStreak"), statScore = $("statScore"), statCorrect = $("statCorrect");
 
-let counter = null, results = [], running = false, ready = false, startMs = 0;
+let counter = null, results = [], running = false, ready = false, startMs = 0, streak = 0;
+
+function pulse(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+function updateStats() {
+  const correct = results.filter(r => r.verdict === "CORRECT").length;
+  statStreak.textContent = streak;
+  statCorrect.textContent = `${correct}/${results.length}`;
+  const sc = results.length ? Math.round(sessionScore(results)) : null;
+  statScore.textContent = sc === null ? "–" : sc;
+  pulse(statScore, "bump");
+}
 
 async function ensureReady() {
   if (ready) return;
@@ -58,6 +70,9 @@ function processFrame(tsMs) {
 function renderRep(res) {
   if (resultsEmpty) resultsEmpty.style.display = "none";
   const ok = res.verdict === "CORRECT";
+  streak = ok ? streak + 1 : 0;        // ต่อเนื่องถูก = streak
+  pulse(repEl, "pop");
+  updateStats();
   lastEl.textContent = `#${res.index} ${res.verdict}` + (ok ? "" : ": " + res.failed.join(", "));
   lastEl.style.color = ok ? "#3fb950" : "#ff6b6b";
   const li = document.createElement("li");
@@ -89,7 +104,7 @@ async function startCamera() {
 function beginSession() {
   counter = new RepCounter(CONFIG); results = []; resultsEl.innerHTML = ""; lastEl.textContent = "";
   if (resultsEmpty) resultsEmpty.style.display = "";
-  repEl.textContent = "0";
+  repEl.textContent = "0"; streak = 0; updateStats();
   running = true; startMs = performance.now(); statusEl.textContent = "กำลังจับท่า…"; loop();
 }
 
