@@ -11,7 +11,10 @@ import { saveSession, listSessions } from "./store.js";
 const $ = (id) => document.getElementById(id);
 const video = $("video"), canvas = $("overlay"), ctx = canvas.getContext("2d");
 const statusEl = $("statusText"), repEl = $("rep"), lastEl = $("last"), resultsEl = $("results"), lbEl = $("leaderboard"), resultsEmpty = $("resultsEmpty");
-const statStreak = $("statStreak"), statScore = $("statScore"), statCorrect = $("statCorrect");
+const statStreak = $("statStreak"), statScore = $("statScore"), statCorrect = $("statCorrect"), fpsEl = $("fps");
+
+const DETECT_INTERVAL = 1000 / 24;   // จำกัด detection ~24fps (กัน backlog/ค้าง)
+let lastDetect = 0, fpsCount = 0, fpsT = 0;
 
 let counter = null, results = [], running = false, ready = false, startMs = 0, streak = 0, facing = "environment";
 
@@ -84,7 +87,16 @@ function renderRep(res) {
 
 function loop() {
   if (!running) return;
-  if (video.readyState >= 2) processFrame(performance.now());
+  const now = performance.now();
+  if (video.readyState >= 2 && now - lastDetect >= DETECT_INTERVAL) {
+    lastDetect = now;
+    processFrame(now);
+    fpsCount++;
+    if (now - fpsT >= 500) {            // อัปเดต fps ทุกครึ่งวิ
+      fpsEl.textContent = Math.round((fpsCount * 1000) / (now - fpsT)) + " fps";
+      fpsCount = 0; fpsT = now;
+    }
+  }
   requestAnimationFrame(loop);
 }
 
@@ -126,6 +138,7 @@ function beginSession() {
   counter = new RepCounter(CONFIG); results = []; resultsEl.innerHTML = ""; lastEl.textContent = "";
   if (resultsEmpty) resultsEmpty.style.display = "";
   repEl.textContent = "0"; streak = 0; updateStats();
+  lastDetect = 0; fpsCount = 0; fpsT = performance.now(); fpsEl.textContent = "";
   running = true; startMs = performance.now(); statusEl.textContent = "กำลังจับท่า…"; loop();
 }
 

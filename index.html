@@ -65,6 +65,7 @@
   .flip:active{transform:scale(.92) rotate(-20deg);}
   .flip:hover{background:rgba(99,102,241,.7);}
   .flip:focus-visible{outline:3px solid var(--ring); outline-offset:2px;}
+  .fps{position:absolute; left:12px; bottom:12px; z-index:2; font-family:ui-monospace,Consolas,monospace; font-size:12px; color:#9aa7b4; background:rgba(15,23,42,.6); padding:3px 8px; border-radius:8px; backdrop-filter:blur(4px);}
   #rep.pop{animation:reppop 360ms cubic-bezier(.2,.7,.2,1);}
   @keyframes reppop{0%{transform:scale(1);}40%{transform:scale(1.28);}100%{transform:scale(1);}}
   /* stats (gamification) */
@@ -134,6 +135,7 @@
       <div id="rep" aria-live="polite">0</div>
       <div id="last" role="status" aria-live="polite"></div>
     </div>
+    <div id="fps" class="fps" aria-hidden="true"></div>
     <button id="btnFlip" class="flip" aria-label="สลับกล้องหน้า/หลัง" title="สลับกล้องหน้า/หลัง">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/><path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/><circle cx="12" cy="12" r="3"/><path d="m18 22-3-3 3-3"/><path d="m6 2 3 3-3 3"/></svg>
     </button>
