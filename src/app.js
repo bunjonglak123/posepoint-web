@@ -6,7 +6,8 @@ import { evaluateRep } from "./criteria.js";
 import { repScore, sessionScore } from "./scoring.js";
 import { rank } from "./leaderboard.js";
 import { CONFIG } from "./config.js";
-import { saveSession, listSessions } from "./store.js";
+import { saveSession, listSessions, clearSessions } from "./store.js";
+import * as auth from "./auth.js";
 
 const $ = (id) => document.getElementById(id);
 const video = $("video"), canvas = $("overlay"), ctx = canvas.getContext("2d");
@@ -43,6 +44,19 @@ function setMode(m) {
 function fmtTime(s) {
   s = Math.max(0, Math.ceil(s));
   return s >= 60 ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : `${s}s`;
+}
+
+let soundOn = localStorage.getItem("pp_sound") !== "0";
+let audioCtx = null;
+function beep(freq = 660, dur = 0.08, vol = 0.15) {
+  if (!soundOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.frequency.value = freq; o.type = "sine"; g.gain.value = vol;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + dur);
+  } catch { /* ignore */ }
 }
 
 let counter = null, results = [], running = false, ready = false, startMs = 0, streak = 0, facing = "environment";
@@ -104,6 +118,7 @@ function renderRep(res) {
   const ok = res.verdict === "CORRECT";
   streak = ok ? streak + 1 : 0;        // ต่อเนื่องถูก = streak
   pulse(repEl, "pop");
+  beep(ok ? 760 : 320, 0.09);
   updateStats();
   lastEl.textContent = `#${res.index} ${res.verdict}` + (ok ? "" : ": " + res.failed.join(", "));
   lastEl.style.color = ok ? "#3fb950" : "#ff6b6b";
@@ -153,8 +168,8 @@ function countdown() {
     let n = 3;
     countdownEl.hidden = false;
     const tick = () => {
-      if (n > 0) { countNum.textContent = n; countNum.className = "anim"; }
-      else { countNum.textContent = "GO"; countNum.className = "go anim"; }
+      if (n > 0) { countNum.textContent = n; countNum.className = "anim"; beep(440, 0.1); }
+      else if (n === 0) { countNum.textContent = "GO"; countNum.className = "go anim"; beep(880, 0.18); }
       void countNum.offsetWidth;
       if (n < 0) { countdownEl.hidden = true; resolve(); return; }
       n--; setTimeout(tick, 700);
@@ -245,12 +260,18 @@ async function finalize() {
 }
 
 async function renderLeaderboard() {
-  const top = rank(await listSessions()).slice(0, 5);
-  lbEl.innerHTML = "<b>Leaderboard</b>";
+  let entries = await listSessions();
+  try {
+    if (auth.isConfigured() && auth.currentUser()) entries = entries.concat(await auth.fetchLeaderboard());
+  } catch { /* cloud optional */ }
+  const top = rank(entries).slice(0, 10);
+  lbEl.innerHTML = "<h2>อันดับ</h2>";
+  if (!top.length) { lbEl.insertAdjacentHTML("beforeend", '<p class="muted-note">ยังไม่มีข้อมูล — เล่นสักเซตก่อน</p>'); return; }
   for (const s of top) {
-    const li = document.createElement("div");
-    li.textContent = `#${s.rank} ${s.user} — score ${s.avgScore} | ${s.repsCompleted} reps`;
-    lbEl.appendChild(li);
+    const row = document.createElement("div");
+    row.className = "lb-row";
+    row.innerHTML = `<span>#${s.rank} ${s.user || "local"}</span><span>${Math.round(s.avgScore)} · ${s.repsCompleted} reps</span>`;
+    lbEl.appendChild(row);
   }
 }
 
@@ -292,3 +313,89 @@ $("file").onchange = (e) => { if (e.target.files[0]) runFile(e.target.files[0]);
 renderLeaderboard().catch(() => {});
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+// ---------- views / bottom nav ----------
+const VIEWS = ["workout", "history", "leaderboard", "profile"];
+function showView(name) {
+  for (const v of VIEWS) {
+    $("view-" + v).hidden = v !== name;
+    $("nav" + v[0].toUpperCase() + v.slice(1)).classList.toggle("active", v === name);
+  }
+  window.scrollTo(0, 0);
+  if (name === "history") renderHistory();
+  if (name === "leaderboard") renderLeaderboard();
+}
+$("navWorkout").onclick = () => showView("workout");
+$("navHistory").onclick = () => showView("history");
+$("navLeaderboard").onclick = () => showView("leaderboard");
+$("navProfile").onclick = () => showView("profile");
+
+// ---------- history ----------
+async function renderHistory() {
+  const list = $("historyList"), empty = $("historyEmpty");
+  const sessions = (await listSessions()).sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
+  list.innerHTML = "";
+  empty.style.display = sessions.length ? "none" : "";
+  for (const s of sessions) {
+    const d = new Date(s.timestamp);
+    const when = isNaN(d.getTime()) ? "" : d.toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" });
+    const el = document.createElement("div");
+    el.className = "history-item";
+    el.innerHTML = `<div><div class="big">${s.repsCompleted} ครั้ง</div>`
+      + `<div class="meta">${s.mode} · ถูก ${s.correctCount} · ${when}</div></div>`
+      + `<div class="big">${Math.round(s.avgScore)}</div>`;
+    list.appendChild(el);
+  }
+}
+
+// ---------- settings ----------
+const setSound = $("setSound");
+setSound.checked = soundOn;
+setSound.onchange = () => { soundOn = setSound.checked; localStorage.setItem("pp_sound", soundOn ? "1" : "0"); if (soundOn) beep(); };
+$("btnClearHistory").onclick = async () => {
+  if (!confirm("ล้างประวัติทั้งหมดในเครื่อง?")) return;
+  await clearSessions(); await renderHistory(); await renderLeaderboard();
+};
+
+// ---------- auth (Firebase, optional) ----------
+const authErr = $("authErr"), authConfigNote = $("authConfigNote"), syncNote = $("syncNote");
+function setAuthUI(user) {
+  $("authSignedOut").hidden = !!user;
+  $("authSignedIn").hidden = !user;
+  if (user) $("authWho").textContent = user.email;
+  renderLeaderboard().catch(() => {});
+}
+async function initAuth() {
+  if (!auth.isConfigured()) {
+    authConfigNote.innerHTML = "ยังไม่ได้ตั้งค่า Firebase — แอปใช้งานแบบในเครื่องได้ปกติ ใส่ค่าใน "
+      + "<code>src/firebase-config.js</code> เพื่อเปิด account + cloud";
+    $("btnSignIn").disabled = true; $("btnSignUp").disabled = true;
+    return;
+  }
+  await auth.init();
+  auth.onAuth(setAuthUI);
+}
+$("btnSignIn").onclick = async () => {
+  authErr.textContent = "";
+  try { await auth.signIn($("authEmail").value.trim(), $("authPass").value); }
+  catch (e) { authErr.textContent = e.message; }
+};
+$("btnSignUp").onclick = async () => {
+  authErr.textContent = "";
+  try { await auth.signUp($("authEmail").value.trim(), $("authPass").value); }
+  catch (e) { authErr.textContent = e.message; }
+};
+$("btnSignOut").onclick = () => auth.signOutUser();
+$("btnSyncCloud").onclick = async () => {
+  syncNote.textContent = "กำลังซิงค์…";
+  try {
+    const sessions = await listSessions();
+    if (!sessions.length) { syncNote.textContent = "ไม่มีข้อมูลให้ซิงค์"; return; }
+    const best = rank(sessions)[0];
+    await auth.pushLeaderboard({ avgScore: best.avgScore, repsCompleted: best.repsCompleted });
+    syncNote.textContent = "ซิงค์สำเร็จ ✓";
+    renderLeaderboard().catch(() => {});
+  } catch (e) { syncNote.textContent = "ซิงค์ไม่ได้: " + e.message; }
+};
+
+initAuth().catch(() => {});

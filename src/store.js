@@ -20,6 +20,16 @@ export async function saveSession(s) {
   });
 }
 
+export async function clearSessions() {
+  const db = await open();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 export async function listSessions() {
   const db = await open();
   return new Promise((resolve, reject) => {

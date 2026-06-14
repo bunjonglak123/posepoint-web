@@ -92,6 +92,35 @@
   .sum-cell .l{font-size:12px; color:var(--muted-fg); text-transform:uppercase;}
   .sum-cell .v{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:30px; font-variant-numeric:tabular-nums; color:var(--secondary);}
   .summary .primary{max-width:340px;}
+  /* views + bottom nav */
+  .view{display:flex; flex-direction:column; gap:var(--gap);}
+  .view[hidden]{display:none;}
+  body{padding-bottom:calc(66px + env(safe-area-inset-bottom));}
+  .bottomnav{position:fixed; left:0; right:0; bottom:0; z-index:50; display:flex; background:#0d1320; border-top:1px solid var(--border); padding-bottom:env(safe-area-inset-bottom);}
+  .bottomnav button{flex:1; min-height:62px; background:transparent; border:0; color:var(--muted-fg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:11px; font-weight:600; cursor:pointer; transition:color var(--t);}
+  .bottomnav button svg{width:23px; height:23px;}
+  .bottomnav button.active{color:var(--secondary);}
+  .bottomnav button:focus-visible{outline:2px solid var(--ring); outline-offset:-3px;}
+  /* forms / settings / history */
+  .field{display:flex; flex-direction:column; gap:6px; margin-bottom:12px;}
+  .field label{font-size:14px; color:var(--muted-fg);}
+  .field input{min-height:48px; background:var(--bg); color:var(--fg); border:1px solid var(--border); border-radius:10px; padding:0 12px; font-size:16px;}
+  .field input:focus-visible{outline:3px solid var(--ring); outline-offset:1px;}
+  .muted-note{font-size:13px; color:var(--muted-fg); line-height:1.6;}
+  .err{color:#ff8787; font-size:14px; min-height:18px;}
+  .history-item{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px; border:1px solid var(--border); border-radius:12px; background:var(--surface); font-variant-numeric:tabular-nums; margin-bottom:8px;}
+  .history-item .meta{font-size:12px; color:var(--muted-fg);}
+  .history-item .big{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:22px; color:var(--secondary);}
+  .toggle{display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border);}
+  .switch{position:relative; width:50px; height:28px; flex:0 0 auto;}
+  .switch input{opacity:0; width:0; height:0;}
+  .slider{position:absolute; inset:0; background:#39404e; border-radius:999px; transition:var(--t); cursor:pointer;}
+  .slider::before{content:""; position:absolute; width:22px; height:22px; left:3px; top:3px; background:#fff; border-radius:50%; transition:var(--t);}
+  .switch input:checked + .slider{background:var(--primary);}
+  .switch input:checked + .slider::before{transform:translateX(22px);}
+  .switch input:focus-visible + .slider{outline:3px solid var(--ring); outline-offset:2px;}
+  .danger{background:transparent; border:1px solid var(--danger); color:#ff8787;}
+  .row2{display:flex; gap:10px;} .row2 button{flex:1;}
   #rep.pop{animation:reppop 360ms cubic-bezier(.2,.7,.2,1);}
   @keyframes reppop{0%{transform:scale(1);}40%{transform:scale(1.28);}100%{transform:scale(1);}}
   /* stats (gamification) */
@@ -154,6 +183,7 @@
 </header>
 
 <main>
+  <section id="view-workout" class="view">
   <div class="modebar" role="tablist" aria-label="โหมดออกกำลังกาย">
     <button class="mode active" id="modeFree" role="tab" aria-selected="true">Freestyle</button>
     <button class="mode" id="modeReps" role="tab" aria-selected="false">เป้าจำนวน</button>
@@ -234,14 +264,83 @@
     <ul id="results"></ul>
     <div class="empty" id="resultsEmpty">ยังไม่มี rep — เริ่มจับท่าเพื่อดูผล</div>
   </section>
-
-  <section class="card" id="leaderboard" aria-label="อันดับ"></section>
-
   <section class="card">
     <p class="note">คลิปท่อนบน (ไม่เห็นสะโพก/เข่า/ข้อเท้า) จะวัดได้แค่เกณฑ์ <b>ศอก</b> + <b>ความลึก</b> ส่วนหลัง/เข่าจะถูก skip. อยากครบ 4 เกณฑ์ให้ถ่าย <b>เต็มตัวมุมข้าง</b>.</p>
     <p class="note" style="margin-top:10px;">ประมวลผลในเครื่อง ไม่อัปโหลดวิดีโอ · <a href="privacy.html" style="color:var(--accent);">นโยบายความเป็นส่วนตัว</a></p>
   </section>
+  </section><!-- /view-workout -->
+
+  <section id="view-history" class="view" hidden aria-label="ประวัติ">
+    <section class="card">
+      <h2>ประวัติการออกกำลังกาย</h2>
+      <div id="historyList"></div>
+      <div class="empty" id="historyEmpty">ยังไม่มีประวัติ — ออกกำลังกายสักเซตก่อน</div>
+    </section>
+  </section>
+
+  <section id="view-leaderboard" class="view" hidden aria-label="อันดับ">
+    <section class="card" id="leaderboard"></section>
+  </section>
+
+  <section id="view-profile" class="view" hidden aria-label="โปรไฟล์">
+    <section class="card" id="authCard">
+      <h2>บัญชีผู้ใช้</h2>
+      <div id="authSignedOut">
+        <div class="field"><label for="authEmail">อีเมล</label><input id="authEmail" type="email" autocomplete="email" inputmode="email"></div>
+        <div class="field"><label for="authPass">รหัสผ่าน</label><input id="authPass" type="password" autocomplete="current-password"></div>
+        <div class="err" id="authErr"></div>
+        <div class="row2"><button id="btnSignIn" class="primary" style="width:auto;">เข้าสู่ระบบ</button><button id="btnSignUp" class="ghost">สมัคร</button></div>
+        <p class="muted-note" id="authConfigNote" style="margin-top:12px;"></p>
+      </div>
+      <div id="authSignedIn" hidden>
+        <p>เข้าสู่ระบบในชื่อ <b id="authWho"></b></p>
+        <div class="row2"><button id="btnSyncCloud" class="ghost">ซิงค์ขึ้นคลาวด์</button><button id="btnSignOut" class="danger">ออกจากระบบ</button></div>
+        <p class="muted-note" id="syncNote" style="margin-top:10px;"></p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ตั้งค่า</h2>
+      <div class="toggle">
+        <span>เสียงตอนนับ/นับถอยหลัง</span>
+        <label class="switch"><input id="setSound" type="checkbox" checked><span class="slider"></span></label>
+      </div>
+      <button id="btnClearHistory" class="danger" style="width:100%; margin-top:14px;">ล้างประวัติทั้งหมด (ในเครื่อง)</button>
+    </section>
+
+    <section class="card">
+      <h2>วิธีใช้งาน</h2>
+      <ol class="muted-note" style="padding-left:18px; margin:0;">
+        <li>เลือกโหมด: Freestyle / เป้าจำนวน / จับเวลา</li>
+        <li>วางมือถือให้เห็น<b>มุมข้าง</b> ทั้งตัว (อยากครบ 4 เกณฑ์ ต้องเห็นสะโพก-เข่า-ข้อเท้า)</li>
+        <li>กด "เริ่มกล้อง" → รอนับถอยหลัง 3-2-1 → วิดพื้น</li>
+        <li>ดูผลแต่ละครั้ง + คะแนน; จบเซตดูสรุป</li>
+        <li>ติดตั้งเป็นแอป: เมนูเบราว์เซอร์ → "Add to Home screen"</li>
+      </ol>
+      <p class="muted-note" style="margin-top:10px;"><a href="privacy.html" style="color:var(--accent);">นโยบายความเป็นส่วนตัว</a></p>
+    </section>
+  </section>
 </main>
+
+<nav class="bottomnav" aria-label="เมนูหลัก">
+  <button id="navWorkout" class="active" aria-label="ออกกำลังกาย">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5 17.5 17.5M21 21l-1-1M3 3l1 1m3.5 3.5L5 10m0 0-2 2 2 2m0-4 2-2m10 10 2 2-2 2m0-4-2-2"/></svg>
+    <span>ออกกำลังกาย</span>
+  </button>
+  <button id="navHistory" aria-label="ประวัติ">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg>
+    <span>ประวัติ</span>
+  </button>
+  <button id="navLeaderboard" aria-label="อันดับ">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4a2 2 0 0 0-2 2v9h4zM18 9h2a2 2 0 0 1 2 2v9h-4zM10 3h4v17h-4z"/></svg>
+    <span>อันดับ</span>
+  </button>
+  <button id="navProfile" aria-label="โปรไฟล์">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+    <span>โปรไฟล์</span>
+  </button>
+</nav>
+
 <script type="module" src="src/app.js"></script>
 </body>
 </html>
