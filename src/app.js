@@ -10,7 +10,7 @@ import { saveSession, listSessions } from "./store.js";
 
 const $ = (id) => document.getElementById(id);
 const video = $("video"), canvas = $("overlay"), ctx = canvas.getContext("2d");
-const statusEl = $("status"), repEl = $("rep"), lastEl = $("last"), resultsEl = $("results"), lbEl = $("leaderboard");
+const statusEl = $("statusText"), repEl = $("rep"), lastEl = $("last"), resultsEl = $("results"), lbEl = $("leaderboard"), resultsEmpty = $("resultsEmpty");
 
 let counter = null, results = [], running = false, ready = false, startMs = 0;
 
@@ -52,10 +52,11 @@ function processFrame(tsMs) {
     results.push(res);
     renderRep(res);
   }
-  repEl.textContent = `Reps: ${counter.count} [${counter.state}]`;
+  repEl.textContent = counter.count;
 }
 
 function renderRep(res) {
+  if (resultsEmpty) resultsEmpty.style.display = "none";
   const ok = res.verdict === "CORRECT";
   lastEl.textContent = `#${res.index} ${res.verdict}` + (ok ? "" : ": " + res.failed.join(", "));
   lastEl.style.color = ok ? "#3fb950" : "#ff6b6b";
@@ -73,14 +74,22 @@ function loop() {
 }
 
 async function startCamera() {
-  await ensureReady();
-  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-  video.srcObject = stream; await video.play(); resize();
-  beginSession();
+  const btn = $("btnCamera");
+  btn.disabled = true;
+  try {
+    await ensureReady();
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+    video.srcObject = stream; await video.play(); resize();
+    beginSession();
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function beginSession() {
   counter = new RepCounter(CONFIG); results = []; resultsEl.innerHTML = ""; lastEl.textContent = "";
+  if (resultsEmpty) resultsEmpty.style.display = "";
+  repEl.textContent = "0";
   running = true; startMs = performance.now(); statusEl.textContent = "กำลังจับท่า…"; loop();
 }
 

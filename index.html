@@ -3,58 +3,150 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0e1116">
+<meta name="theme-color" content="#0F172A">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <title>PosePoint — Push-up Counter</title>
 <style>
-  :root { --bg:#0e1116; --panel:#161b22; --line:#2b333d; --ink:#e6edf3; --accent:#4ea1ff; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font-family:"Segoe UI",system-ui,sans-serif; }
-  header { padding:14px 16px; border-bottom:1px solid var(--line); }
-  header h1 { margin:0; font-size:18px; }
-  header span { color:#9aa7b4; font-size:13px; }
-  main { max-width:680px; margin:0 auto; padding:16px; }
-  .stage { position:relative; background:#000; border-radius:12px; overflow:hidden; aspect-ratio:4/3; }
-  video { width:100%; height:100%; object-fit:contain; display:block; }
-  canvas { position:absolute; inset:0; width:100%; height:100%; }
-  .hud { position:absolute; top:8px; left:10px; right:10px; display:flex; justify-content:space-between; pointer-events:none; }
-  .hud #rep { font-weight:700; font-size:18px; text-shadow:0 1px 3px #000; }
-  .hud #last { font-weight:700; font-size:15px; text-shadow:0 1px 3px #000; }
-  .controls { display:flex; gap:8px; flex-wrap:wrap; margin:14px 0; }
-  button, label.file { background:var(--accent); color:#04121f; border:0; border-radius:8px; padding:10px 16px; font-weight:600; cursor:pointer; }
-  label.file { display:inline-block; }
-  button.ghost { background:var(--panel); color:var(--ink); border:1px solid var(--line); }
-  input[type=file] { display:none; }
-  #status { color:#9aa7b4; margin:8px 0; }
-  ul { padding-left:18px; } li { margin:2px 0; }
-  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-top:14px; }
-  #leaderboard div { margin:3px 0; }
+  :root{
+    --primary:#D97706; --on-primary:#FFFFFF; --secondary:#F59E0B; --accent:#6366F1;
+    --bg:#0F172A; --fg:#FFFFFF; --muted-surface:#1F1E27; --muted-fg:#CBD5E1;
+    --border:rgba(255,255,255,.08); --danger:#DC2626; --success:#22C55E; --ring:#D97706;
+    --surface:#161b29; --r:16px; --gap:16px;
+    --t:200ms cubic-bezier(.2,.7,.2,1);
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font-family:"Barlow",system-ui,sans-serif; font-size:16px; line-height:1.55;
+    min-height:100dvh;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  h1,h2,.cond{font-family:"Barlow Condensed","Barlow",sans-serif; letter-spacing:.5px;}
+  header{
+    display:flex; align-items:center; gap:12px; padding:16px;
+    background:linear-gradient(120deg,#1a1407,#0F172A 60%); border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:40;
+  }
+  header .logo{width:40px;height:40px;flex:0 0 auto;}
+  header h1{margin:0; font-size:26px; font-weight:700; text-transform:uppercase; line-height:1;}
+  header .sub{color:var(--muted-fg); font-size:13px;}
+  main{max-width:680px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:var(--gap);}
+  /* stage */
+  .stage{position:relative; background:#000; border-radius:var(--r); overflow:hidden; aspect-ratio:3/4; border:1px solid var(--border);}
+  @media(min-width:560px){.stage{aspect-ratio:4/3;}}
+  video{width:100%;height:100%;object-fit:contain;display:block; background:#000;}
+  canvas{position:absolute;inset:0;width:100%;height:100%;}
+  .hud{position:absolute; inset:10px 10px auto 10px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px; pointer-events:none;}
+  #rep{
+    font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:40px; line-height:.95;
+    font-variant-numeric:tabular-nums; text-shadow:0 2px 8px rgba(0,0,0,.8);
+    padding:4px 12px; background:rgba(15,23,42,.55); border-radius:12px; backdrop-filter:blur(4px);
+  }
+  #last{
+    font-weight:600; font-size:15px; text-align:right; max-width:55%;
+    padding:6px 12px; border-radius:999px; background:rgba(15,23,42,.6); text-shadow:0 1px 4px rgba(0,0,0,.8);
+    min-height:0;
+  }
+  /* controls */
+  .cta{display:flex; flex-direction:column; gap:10px;}
+  button,.file{
+    font-family:"Barlow",sans-serif; font-size:17px; font-weight:600;
+    min-height:52px; padding:0 18px; border-radius:14px; border:1px solid transparent;
+    display:inline-flex; align-items:center; justify-content:center; gap:10px;
+    cursor:pointer; transition:transform var(--t), background var(--t), border-color var(--t), opacity var(--t);
+    -webkit-tap-highlight-color:transparent; touch-action:manipulation; user-select:none;
+  }
+  button svg,.file svg{width:22px;height:22px;flex:0 0 auto;}
+  .primary{background:var(--primary); color:var(--on-primary); width:100%; font-size:19px; box-shadow:0 6px 18px rgba(217,119,6,.35);}
+  .row{display:flex; gap:10px;}
+  .row .ghost{flex:1;}
+  .ghost{background:var(--surface); color:var(--fg); border-color:var(--border);}
+  .ghost.file{flex:1;}
+  button:active,.file:active{transform:scale(.97);}
+  button:hover:not(:active),.file:hover{background:var(--secondary);}
+  .ghost:hover{background:#22283a;}
+  button:focus-visible,.file:focus-visible{outline:3px solid var(--ring); outline-offset:2px;}
+  button:disabled{opacity:.45; cursor:default; transform:none;}
+  input[type=file]{position:absolute;width:1px;height:1px;opacity:0;}
+  /* status */
+  #status{color:var(--muted-fg); font-size:14px; min-height:20px; display:flex; align-items:center; gap:8px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--secondary);box-shadow:0 0 0 0 rgba(245,158,11,.6); animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(245,158,11,.5);}70%{box-shadow:0 0 0 8px rgba(245,158,11,0);}100%{box-shadow:0 0 0 0 rgba(245,158,11,0);}}
+  /* cards */
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:16px;}
+  .card h2{margin:0 0 10px; font-size:20px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:#fff;}
+  ul#results{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px;}
+  ul#results li{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; background:#11162400; border:1px solid var(--border); font-variant-numeric:tabular-nums;}
+  .empty{color:var(--muted-fg); font-size:14px; padding:6px 2px;}
+  #leaderboard .lb-row{display:flex; justify-content:space-between; padding:8px 4px; border-bottom:1px solid var(--border); font-variant-numeric:tabular-nums;}
+  #leaderboard .lb-row:last-child{border-bottom:0;}
+  .note{font-size:13px; color:var(--muted-fg); line-height:1.6;}
+  .note b{color:var(--secondary);}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important;}}
 </style>
 </head>
 <body>
 <header>
-  <h1>PosePoint</h1>
-  <span>นับ + ตรวจฟอร์มวิดพื้น · on-device (MediaPipe Tasks Web)</span>
+  <svg class="logo" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+    <rect width="48" height="48" rx="12" fill="#D97706"/>
+    <circle cx="24" cy="15" r="5" fill="#0F172A"/>
+    <path d="M9 32 L19 27 L29 31 L39 24" stroke="#0F172A" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <div>
+    <h1>PosePoint</h1>
+    <div class="sub">นับ + ตรวจฟอร์มวิดพื้น · on-device</div>
+  </div>
 </header>
+
 <main>
-  <div class="stage">
+  <section class="stage" aria-label="กล้องและการนับ">
     <video id="video" playsinline muted></video>
-    <canvas id="overlay"></canvas>
-    <div class="hud"><div id="rep">Reps: 0</div><div id="last"></div></div>
+    <canvas id="overlay" aria-hidden="true"></canvas>
+    <div class="hud">
+      <div id="rep" aria-live="polite">0</div>
+      <div id="last" role="status" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <div class="cta">
+    <button id="btnCamera" class="primary" aria-label="เริ่มจับท่าด้วยกล้อง">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      เริ่มกล้อง
+    </button>
+    <div class="row">
+      <button id="btnStop" class="ghost" aria-label="หยุดและสรุปผล">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        หยุด
+      </button>
+      <label class="file ghost" aria-label="เลือกไฟล์วิดีโอจากเครื่อง">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        เลือกไฟล์
+        <input id="file" type="file" accept="video/*">
+      </label>
+      <button id="btnSample" class="ghost" aria-label="ทดสอบด้วยคลิปตัวอย่าง">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+        ทดสอบ
+      </button>
+    </div>
   </div>
-  <div class="controls">
-    <button id="btnCamera">เริ่มกล้อง</button>
-    <button id="btnStop" class="ghost">หยุด/สรุป</button>
-    <label class="file ghost">เลือกไฟล์วิดีโอ<input id="file" type="file" accept="video/*"></label>
-    <button id="btnSample" class="ghost">ทดสอบ sample</button>
-  </div>
-  <div id="status">โหลดหน้าเสร็จ — กดเริ่มกล้องหรือเลือกไฟล์</div>
-  <div class="panel"><b>ผลแต่ละ rep</b><ul id="results"></ul></div>
-  <div class="panel" id="leaderboard"></div>
-  <div class="panel" style="font-size:13px; color:#9aa7b4;">
-    หมายเหตุ: คลิปท่อนบน (ไม่เห็นสะโพก/เข่า/ข้อเท้า) จะวัดได้แค่เกณฑ์ศอก+ความลึก
-    ส่วนหลัง/เข่าจะถูก skip. อยากครบ 4 เกณฑ์ให้ถ่ายเต็มตัวมุมข้าง.
-  </div>
+
+  <div id="status"><span class="dot" aria-hidden="true"></span><span id="statusText">พร้อมใช้งาน — กดเริ่มกล้องหรือเลือกไฟล์</span></div>
+
+  <section class="card" aria-label="ผลแต่ละครั้ง">
+    <h2>ผลแต่ละครั้ง</h2>
+    <ul id="results"></ul>
+    <div class="empty" id="resultsEmpty">ยังไม่มี rep — เริ่มจับท่าเพื่อดูผล</div>
+  </section>
+
+  <section class="card" id="leaderboard" aria-label="อันดับ"></section>
+
+  <section class="card">
+    <p class="note">คลิปท่อนบน (ไม่เห็นสะโพก/เข่า/ข้อเท้า) จะวัดได้แค่เกณฑ์ <b>ศอก</b> + <b>ความลึก</b> ส่วนหลัง/เข่าจะถูก skip. อยากครบ 4 เกณฑ์ให้ถ่าย <b>เต็มตัวมุมข้าง</b>.</p>
+  </section>
 </main>
 <script type="module" src="src/app.js"></script>
 </body>
