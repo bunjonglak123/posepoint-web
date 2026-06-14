@@ -54,6 +54,17 @@
     padding:6px 12px; border-radius:999px; background:rgba(15,23,42,.6); text-shadow:0 1px 4px rgba(0,0,0,.8);
     min-height:0;
   }
+  .flip{
+    position:absolute; right:12px; bottom:12px; z-index:2;
+    width:48px; height:48px; min-height:48px; padding:0; border-radius:50%;
+    background:rgba(15,23,42,.65); color:#fff; border:1px solid var(--border);
+    display:inline-flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);
+    transition:transform var(--t), background var(--t);
+  }
+  .flip svg{width:24px;height:24px;}
+  .flip:active{transform:scale(.92) rotate(-20deg);}
+  .flip:hover{background:rgba(99,102,241,.7);}
+  .flip:focus-visible{outline:3px solid var(--ring); outline-offset:2px;}
   #rep.pop{animation:reppop 360ms cubic-bezier(.2,.7,.2,1);}
   @keyframes reppop{0%{transform:scale(1);}40%{transform:scale(1.28);}100%{transform:scale(1);}}
   /* stats (gamification) */
@@ -123,6 +134,9 @@
       <div id="rep" aria-live="polite">0</div>
       <div id="last" role="status" aria-live="polite"></div>
     </div>
+    <button id="btnFlip" class="flip" aria-label="สลับกล้องหน้า/หลัง" title="สลับกล้องหน้า/หลัง">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/><path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/><circle cx="12" cy="12" r="3"/><path d="m18 22-3-3 3-3"/><path d="m6 2 3 3-3 3"/></svg>
+    </button>
   </section>
 
   <div class="stats" aria-label="สถิติเซสชัน">

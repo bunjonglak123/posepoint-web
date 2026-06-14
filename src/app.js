@@ -13,7 +13,7 @@ const video = $("video"), canvas = $("overlay"), ctx = canvas.getContext("2d");
 const statusEl = $("statusText"), repEl = $("rep"), lastEl = $("last"), resultsEl = $("results"), lbEl = $("leaderboard"), resultsEmpty = $("resultsEmpty");
 const statStreak = $("statStreak"), statScore = $("statScore"), statCorrect = $("statCorrect");
 
-let counter = null, results = [], running = false, ready = false, startMs = 0, streak = 0;
+let counter = null, results = [], running = false, ready = false, startMs = 0, streak = 0, facing = "environment";
 
 function pulse(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
 
@@ -88,14 +88,35 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
+async function openCamera() {
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false });
+  if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+  video.src = ""; video.srcObject = stream; await video.play(); resize();
+}
+
+function camActive() { return !!video.srcObject; }
+
 async function startCamera() {
   const btn = $("btnCamera");
   btn.disabled = true;
   try {
     await ensureReady();
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-    video.srcObject = stream; await video.play(); resize();
+    await openCamera();
     beginSession();
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function flipCamera() {
+  facing = facing === "environment" ? "user" : "environment";
+  if (!camActive()) return;                 // ยังไม่เปิดกล้อง — แค่จำค่าไว้
+  const btn = $("btnFlip");
+  btn.disabled = true;
+  try {
+    await openCamera();                     // สลับสตรีมโดยไม่รีเซ็ตการนับ
+  } catch (e) {
+    statusEl.textContent = "สลับกล้องไม่ได้: " + e.message;
   } finally {
     btn.disabled = false;
   }
@@ -164,6 +185,7 @@ window.posepoint = {
 };
 
 $("btnCamera").onclick = () => startCamera().catch(e => statusEl.textContent = "Error: " + e.message);
+$("btnFlip").onclick = () => flipCamera();
 $("btnStop").onclick = () => stopSession();
 $("btnSample").onclick = () => window.posepoint.runVideoUrl("sample.mp4")
   .then(r => statusEl.textContent = `sample: ${r.reps} reps`)
