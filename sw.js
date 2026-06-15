@@ -1,5 +1,5 @@
-// service worker ขั้นต่ำ — cache app shell ให้ทำงานออฟไลน์ (PWA)
-const CACHE = "posepoint-v6";
+﻿// service worker เธเธฑเนเธเธ•เนเธณ โ€” cache app shell เนเธซเนเธ—เธณเธเธฒเธเธญเธญเธเนเธฅเธเน (PWA)
+const CACHE = "posepoint-v7";
 const SHELL = [
   "./", "index.html", "manifest.webmanifest", "icon.svg",
   "icon-192.png", "icon-512.png", "icon-maskable-512.png",
@@ -17,7 +17,8 @@ self.addEventListener("activate", (e) => {
 });
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
-  // โมเดล/wasm จาก CDN: ไป network ตรง (อย่า cache shell)
+  // เนเธกเน€เธ”เธฅ/wasm เธเธฒเธ CDN: เนเธ network เธ•เธฃเธ (เธญเธขเนเธฒ cache shell)
   if (url.origin !== location.origin) return;
   e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
 });
+

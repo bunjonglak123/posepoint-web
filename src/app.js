@@ -59,6 +59,19 @@ function beep(freq = 660, dur = 0.08, vol = 0.15) {
   } catch { /* ignore */ }
 }
 
+// ปลุก AudioContext ภายใน user gesture (iOS Safari เปิดมาแบบ suspended)
+function primeAudio() {
+  if (!soundOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  } catch { /* ignore */ }
+}
+
+function stopStream() {
+  if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
+}
+
 let counter = null, results = [], running = false, ready = false, startMs = 0, streak = 0, facing = "environment";
 
 function pulse(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
@@ -96,7 +109,7 @@ function drawOverlay(lm) {
   line("shoulder", "elbow"); line("elbow", "wrist");
   line("shoulder", "hip"); line("hip", "knee"); line("knee", "ankle");
   ctx.fillStyle = "#7ee787";
-  for (const k of pts) { const [x, y] = px(lm[k]); ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill(); }
+  for (const k of pts) { const [x, y] = px(lm[k]); ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill(); }
 }
 
 function processFrame(tsMs) {
@@ -161,7 +174,7 @@ function loop() {
 
 async function openCamera() {
   // ปิดกล้องเก่าก่อน (มือถือหลายรุ่นเปิดได้ทีละกล้อง) แล้วค่อยขอกล้องใหม่
-  if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
+  stopStream();
   video.removeAttribute("src");
   const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing } }, audio: false });
   video.srcObject = stream; await video.play(); resize();
@@ -187,6 +200,7 @@ function countdown() {
 async function startCamera() {
   const btn = $("btnCamera");
   btn.disabled = true;
+  primeAudio();              // ปลุกเสียงภายใน gesture (iOS)
   try {
     await ensureReady();
     target = Math.max(1, parseInt(targetInput.value, 10) || (mode === "reps" ? 20 : 30));
@@ -229,7 +243,7 @@ function beginSession() {
 async function endWorkout(title) {
   if (ended) return;
   ended = true; running = false; timerEl.hidden = true;
-  if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
+  stopStream();
   await finalize();
   showSummary(title);
 }
@@ -284,11 +298,10 @@ async function renderLeaderboard() {
 // โหมดไฟล์ (ทดสอบ/cross-check): เลือกไฟล์วิดีโอ -> ประมวลผลจนจบ
 async function runFile(file) {
   await ensureReady();
-  video.srcObject = null; video.src = URL.createObjectURL(file);
+  stopStream(); video.src = URL.createObjectURL(file);
   await video.play().catch(() => {}); resize(); beginSession();
-  video.onended = () => stopSessionFileMode();
+  video.onended = () => endWorkout("จบคลิป");   // โชว์ summary เหมือนโหมดกล้อง
 }
-async function stopSessionFileMode() { running = false; await finalize(); }
 
 // expose สำหรับ headless verification
 window.posepoint = {
@@ -309,7 +322,10 @@ $("btnFlip").onclick = () => flipCamera();
 $("modeFree").onclick = () => setMode("free");
 $("modeReps").onclick = () => setMode("reps");
 $("modeTime").onclick = () => setMode("time");
-$("btnAgain").onclick = () => { summaryEl.hidden = true; startCamera().catch(e => statusEl.textContent = "Error: " + e.message); };
+$("btnAgain").onclick = () => {
+  summaryEl.hidden = true;
+  startCamera().catch(e => { statusEl.textContent = "Error: " + e.message; summaryEl.hidden = false; });
+};
 $("btnStop").onclick = () => stopSession();
 $("btnSample").onclick = () => window.posepoint.runVideoUrl("sample.mp4")
   .then(r => statusEl.textContent = `sample: ${r.reps} reps`)
