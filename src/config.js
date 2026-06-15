@@ -5,5 +5,6 @@ export const CONFIG = {
   DEPTH_RATIO: 0.5,   // wsdMin < DEPTH_RATIO * wsdMax
   BACK_MIN: 150,      // backAngle ต้อง >= ค่านี้ตลอด rep
   KNEE_MIN: 150,      // kneeAngle ต้อง >= ค่านี้ตลอด rep (คาลิเบรตจาก 160)
-  MIN_VISIBILITY: 0.5 // visibility ต่ำกว่านี้ = ไม่น่าเชื่อถือ
+  MIN_VISIBILITY: 0.5, // visibility ต่ำกว่านี้ = ไม่น่าเชื่อถือ
+  MIN_TRAVEL_RATIO: 0.4 // ไหล่ต้องเลื่อนแนวดิ่ง >= ค่านี้ × ความยาวต้นแขน ถึงนับ (กันงอแขนหลอก)
 };
