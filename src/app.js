@@ -80,7 +80,11 @@ async function ensureReady() {
   statusEl.textContent = "พร้อม";
 }
 
-function resize() { canvas.width = video.videoWidth; canvas.height = video.videoHeight; }
+function resize() {
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  // ตั้ง aspect ของ stage ให้ตรงกล้อง -> ไม่มี letterbox -> overlay ตรงวิดีโอ
+  if (video.videoWidth) video.parentElement.style.aspectRatio = video.videoWidth + " / " + video.videoHeight;
+}
 
 function drawOverlay(lm) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -99,10 +103,10 @@ function processFrame(tsMs) {
   const raw = detect(video, tsMs);
   if (!raw) { drawOverlay(null); return; }
   const { landmarks } = selectSide(raw);
-  // gate core joints
+  // gate core joints — ไม่วาด/ไม่นับถ้า confidence ต่ำ (กันจับ background)
   const core = Math.min(landmarks.shoulder.visibility, landmarks.elbow.visibility, landmarks.wrist.visibility);
+  if (core < CONFIG.MIN_VISIBILITY) { drawOverlay(null); return; }
   drawOverlay(landmarks);
-  if (core < CONFIG.MIN_VISIBILITY) return;
   const f = computeFeatures(landmarks);
   const m = counter.update(f);
   if (m) {
@@ -156,9 +160,11 @@ function loop() {
 }
 
 async function openCamera() {
-  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false });
-  if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
-  video.src = ""; video.srcObject = stream; await video.play(); resize();
+  // ปิดกล้องเก่าก่อน (มือถือหลายรุ่นเปิดได้ทีละกล้อง) แล้วค่อยขอกล้องใหม่
+  if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
+  video.removeAttribute("src");
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing } }, audio: false });
+  video.srcObject = stream; await video.play(); resize();
 }
 
 function camActive() { return !!video.srcObject; }
