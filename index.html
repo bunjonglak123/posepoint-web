@@ -122,6 +122,18 @@
   .switch input:focus-visible + .slider{outline:3px solid var(--ring); outline-offset:2px;}
   .danger{background:transparent; border:1px solid var(--danger); color:#ff8787;}
   .row2{display:flex; gap:10px;} .row2 button{flex:1;}
+  /* live body-in-frame hint */
+  .bodyhint{position:absolute; top:54px; left:50%; transform:translateX(-50%); z-index:2; font-size:12.5px; font-weight:600; padding:4px 12px; border-radius:999px; background:rgba(15,23,42,.7); backdrop-filter:blur(4px); white-space:nowrap;}
+  .bodyhint.ok{color:#3fb950;} .bodyhint.warn{color:var(--secondary);}
+  /* camera guide overlay */
+  .iconbtn{margin-left:auto; width:40px; height:40px; min-height:40px; border-radius:50%; background:var(--surface); color:var(--fg); border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center; cursor:pointer;}
+  .iconbtn:focus-visible{outline:3px solid var(--ring); outline-offset:2px;}
+  .guide{position:fixed; inset:0; z-index:100; background:rgba(8,11,18,.97); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; overflow:auto;}
+  .guide .gcard{max-width:430px; width:100%;}
+  .guide h2{font-size:22px; text-transform:uppercase; letter-spacing:.5px; margin:0 0 6px;}
+  .guide svg.diagram{width:100%; max-width:340px; height:auto; display:block; margin:8px auto; background:var(--surface); border:1px solid var(--border); border-radius:14px;}
+  .guide ol{padding-left:20px; line-height:1.7; margin:8px 0;}
+  .guide ol b{color:var(--secondary);}
   #rep.pop{animation:reppop 360ms cubic-bezier(.2,.7,.2,1);}
   @keyframes reppop{0%{transform:scale(1);}40%{transform:scale(1.28);}100%{transform:scale(1);}}
   /* stats (gamification) */
@@ -181,6 +193,9 @@
     <h1>PosePoint</h1>
     <div class="sub">นับ + ตรวจฟอร์มวิดพื้น · on-device</div>
   </div>
+  <button id="btnGuide" class="iconbtn" aria-label="วิธีวางกล้อง/วิธีใช้" title="วิธีวางกล้อง">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+  </button>
 </header>
 
 <main>
@@ -204,6 +219,7 @@
       <div id="last" role="status" aria-live="polite"></div>
     </div>
     <div id="timer" class="timer" hidden aria-live="off"></div>
+    <div id="bodyHint" class="bodyhint" hidden aria-live="off"></div>
     <div id="countdown" class="countdown" hidden aria-hidden="true"><span id="countNum">3</span></div>
     <div id="summary" class="summary" hidden role="dialog" aria-label="สรุปผล">
       <h2 id="summaryTitle">สรุปผล</h2>
@@ -322,6 +338,38 @@
     </section>
   </section>
 </main>
+
+<div id="guide" class="guide" hidden role="dialog" aria-label="วิธีวางกล้อง">
+  <div class="gcard">
+    <h2>วางกล้องแบบนี้</h2>
+    <svg class="diagram" viewBox="0 0 340 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- พื้น -->
+      <line x1="20" y1="140" x2="320" y2="140" stroke="#2b333d" stroke-width="2"/>
+      <!-- คน plank มุมข้าง -->
+      <g stroke="#7ee787" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="90" cy="112" r="9" fill="#7ee787" stroke="none"/>
+        <path d="M99 116 L150 124 L200 132"/>      <!-- ลำตัว หัว->สะโพก->เข่า -->
+        <path d="M200 132 L235 138"/>               <!-- เข่า->เท้า -->
+        <path d="M108 116 L116 138 L132 138"/>      <!-- แขน ไหล่->ข้อมือ(พื้น) -->
+      </g>
+      <text x="150" y="100" fill="#9aa7b4" font-size="11" text-anchor="middle">เห็นเต็มตัว หัวถึงเท้า</text>
+      <!-- กล้อง ด้านข้าง ต่ำ -->
+      <rect x="288" y="120" width="20" height="34" rx="3" fill="#161b29" stroke="#D97706" stroke-width="2"/>
+      <circle cx="298" cy="132" r="4" fill="#D97706"/>
+      <text x="298" y="170" fill="#D97706" font-size="11" text-anchor="middle">90° · ต่ำ</text>
+      <!-- เส้นมอง -->
+      <line x1="288" y1="132" x2="150" y2="126" stroke="#4ea1ff" stroke-width="1.5" stroke-dasharray="4 3"/>
+    </svg>
+    <ol>
+      <li>หัน<b>ด้านข้าง</b>ให้กล้อง (ตั้งฉาก 90° ไม่เฉียง)</li>
+      <li>กล้องเห็น<b>เต็มตัว หัวถึงเท้า</b> — ขาดขา = วัดได้แค่ 2 เกณฑ์</li>
+      <li>วางกล้อง<b>ต่ำ</b> ระดับลำตัว ห่าง ~1.5-2 ม. แนวนอน</li>
+      <li>แสงสว่างพอ ฉากหลังโล่ง</li>
+    </ol>
+    <p class="muted-note">เห็นเต็มตัว = ตรวจครบ 4 เกณฑ์ (ศอก/ลึก/หลัง/เข่า)</p>
+    <button id="btnGuideClose" class="primary" style="width:100%; margin-top:8px;">เข้าใจแล้ว</button>
+  </div>
+</div>
 
 <nav class="bottomnav" aria-label="เมนูหลัก">
   <button id="navWorkout" class="active" aria-label="ออกกำลังกาย">

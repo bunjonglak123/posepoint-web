@@ -21,6 +21,7 @@ const targetRow = $("targetRow"), targetInput = $("targetInput"), targetLabel = 
 const timerEl = $("timer"), countdownEl = $("countdown"), countNum = $("countNum");
 const summaryEl = $("summary"), summaryTitle = $("summaryTitle");
 const sumReps = $("sumReps"), sumCorrect = $("sumCorrect"), sumScore = $("sumScore"), sumTime = $("sumTime");
+const bodyHint = $("bodyHint"), guideEl = $("guide");
 
 const MODE_LABEL = { free: "Freestyle", reps: "Reps Goal", time: "Time Attack" };
 let mode = "free", target = 20, ended = false;
@@ -99,6 +100,12 @@ function resize() {
   if (video.videoWidth) video.parentElement.style.aspectRatio = video.videoWidth + " / " + video.videoHeight;
 }
 
+function updateBodyHint(lowerVis) {
+  const full = lowerVis >= CONFIG.MIN_VISIBILITY;
+  bodyHint.textContent = full ? "✓ เห็นเต็มตัว · 4 เกณฑ์" : "⚠ เห็นแค่ท่อนบน · ขยับให้เห็นขา (2 เกณฑ์)";
+  bodyHint.className = "bodyhint " + (full ? "ok" : "warn");
+}
+
 function drawOverlay(lm) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!lm) return;
@@ -121,6 +128,7 @@ function processFrame(tsMs) {
   if (core < CONFIG.MIN_VISIBILITY) { drawOverlay(null); return; }
   drawOverlay(landmarks);
   const f = computeFeatures(landmarks);
+  updateBodyHint(f.lowerVis);
   const m = counter.update(f);
   if (m) {
     const res = evaluateRep(m, CONFIG);
@@ -232,6 +240,7 @@ function beginSession() {
   repEl.textContent = "0"; streak = 0; updateStats();
   lastDetect = 0; fpsCount = 0; fpsT = performance.now(); fpsEl.textContent = "";
   ended = false; summaryEl.hidden = true;
+  bodyHint.hidden = false; bodyHint.textContent = "";
   timerEl.hidden = mode !== "time";
   if (mode === "time") timerEl.textContent = fmtTime(target);
   running = true; startMs = performance.now();
@@ -242,7 +251,7 @@ function beginSession() {
 
 async function endWorkout(title) {
   if (ended) return;
-  ended = true; running = false; timerEl.hidden = true;
+  ended = true; running = false; timerEl.hidden = true; bodyHint.hidden = true;
   stopStream();
   await finalize();
   showSummary(title);
@@ -331,6 +340,11 @@ $("btnSample").onclick = () => window.posepoint.runVideoUrl("sample.mp4")
   .then(r => statusEl.textContent = `sample: ${r.reps} reps`)
   .catch(e => statusEl.textContent = e.message);
 $("file").onchange = (e) => { if (e.target.files[0]) runFile(e.target.files[0]); };
+
+// ---------- camera guide ----------
+$("btnGuide").onclick = () => { guideEl.hidden = false; };
+$("btnGuideClose").onclick = () => { guideEl.hidden = true; localStorage.setItem("pp_guide_seen", "1"); };
+if (!localStorage.getItem("pp_guide_seen")) guideEl.hidden = false;   // โชว์อัตโนมัติครั้งแรก
 
 renderLeaderboard().catch(() => {});
 
