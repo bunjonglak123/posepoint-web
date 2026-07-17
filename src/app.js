@@ -490,3 +490,41 @@ $("btnSyncCloud").onclick = async () => {
 };
 
 initAuth().catch(() => {});
+
+// ---------- screenshot/demo hooks (ใช้ตอนแคปภาพประกอบเอกสาร) ----------
+// #view=history|leaderboard|profile  #guide  #demo-summary  #demo-alert=back
+{
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get("view")) showView(h.get("view"));
+  if (h.has("guide")) guideEl.hidden = false;
+  else if (!localStorage.getItem("pp_guide_seen") && h.toString()) guideEl.hidden = true;
+  if (h.has("demo-summary")) {
+    summaryTitle.textContent = t("setDone");
+    sumReps.textContent = "12"; sumCorrect.textContent = "10";
+    sumScore.textContent = "86"; sumTime.textContent = "58s";
+    summaryEl.hidden = false; guideEl.hidden = true;
+  }
+  if (h.get("demo-alert")) {
+    const k = h.get("demo-alert");
+    showFormAlert(t(ALERT_KEY[k] || "alertBack"), false);
+    clearTimeout(alertTimer); guideEl.hidden = true;
+    repEl.textContent = "7";
+  }
+  if (h.get("mode")) setMode(h.get("mode"));
+  if (h.has("demo-countdown")) { countdownEl.hidden = false; countNum.textContent = "2"; guideEl.hidden = true; }
+  if (h.get("scroll")) setTimeout(() => window.scrollTo(0, +h.get("scroll")), 700);
+  if (h.has("demo-data")) setTimeout(() => {       // DOM อย่างเดียว ไม่แตะ IndexedDB
+    const rows = [[12, 10, 86, "Freestyle"], [20, 17, 82, "Reps Goal"], [15, 11, 74, "Time Attack"]];
+    const hl = $("historyList");
+    if (hl) {
+      $("historyEmpty").style.display = "none"; hl.innerHTML = "";
+      for (const [r, c, s, m] of rows) hl.insertAdjacentHTML("beforeend",
+        `<div class="history-item"><div><div class="big">${r} ${t("reps")}</div>`
+        + `<div class="meta">${m} · ${t("correctWord")} ${c} · 17/7/2569 20:1${r % 10}</div></div>`
+        + `<div class="big">${s}</div></div>`);
+    }
+    lbEl.innerHTML = `<h2>${t("lbTitle")}</h2>`;
+    rows.forEach(([r, , s], i) => lbEl.insertAdjacentHTML("beforeend",
+      `<div class="lb-row"><span>#${i + 1} local</span><span>${s} · ${r} reps</span></div>`));
+  }, 600);
+}
