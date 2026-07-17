@@ -1,5 +1,4 @@
 node_modules/
-sample.mp4
 .DS_Store
 cert.pem
 key.pem
