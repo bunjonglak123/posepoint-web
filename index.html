@@ -125,8 +125,21 @@
   /* live body-in-frame hint */
   .bodyhint{position:absolute; top:54px; left:50%; transform:translateX(-50%); z-index:2; font-size:12.5px; font-weight:600; padding:4px 12px; border-radius:999px; background:rgba(15,23,42,.7); backdrop-filter:blur(4px); white-space:nowrap;}
   .bodyhint.ok{color:#3fb950;} .bodyhint.warn{color:var(--secondary);}
+  /* form alert — แบนเนอร์ใหญ่กลางจอกล้อง มองไกลได้ตอนวิดพื้น */
+  .formalert{
+    position:absolute; top:38%; left:50%; transform:translateX(-50%); z-index:4;
+    max-width:92%; padding:10px 22px; border-radius:16px; pointer-events:none;
+    font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:38px; line-height:1.1;
+    text-align:center; white-space:nowrap; text-shadow:0 2px 8px rgba(0,0,0,.6);
+    backdrop-filter:blur(3px); animation:alertpop 240ms cubic-bezier(.2,.7,.2,1);
+  }
+  .formalert.bad{background:rgba(220,38,38,.82); color:#fff; border:2px solid #ff8787;}
+  .formalert.good{background:rgba(34,197,94,.78); color:#06240f; border:2px solid #7ee787;}
+  @keyframes alertpop{0%{transform:translateX(-50%) scale(.6);opacity:0;}100%{transform:translateX(-50%) scale(1);opacity:1;}}
   /* camera guide overlay */
   .iconbtn{margin-left:auto; width:40px; height:40px; min-height:40px; border-radius:50%; background:var(--surface); color:var(--fg); border:1px solid var(--border); display:inline-flex; align-items:center; justify-content:center; cursor:pointer;}
+  .langbtn{margin-left:auto; margin-right:0; font-weight:700; font-size:13px; letter-spacing:.5px;}
+  .langbtn + .iconbtn{margin-left:8px;}
   .iconbtn:focus-visible{outline:3px solid var(--ring); outline-offset:2px;}
   .guide{position:fixed; inset:0; z-index:100; background:rgba(8,11,18,.97); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; overflow:auto;}
   .guide .gcard{max-width:430px; width:100%;}
@@ -193,6 +206,7 @@
     <h1>PosePoint</h1>
     <div class="sub">นับ + ตรวจฟอร์มวิดพื้น · on-device</div>
   </div>
+  <button id="btnLang" class="iconbtn langbtn" aria-label="เปลี่ยนภาษา / Switch language" title="TH/EN">EN</button>
   <button id="btnGuide" class="iconbtn" aria-label="วิธีวางกล้อง/วิธีใช้" title="วิธีวางกล้อง">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
   </button>
@@ -220,6 +234,7 @@
     </div>
     <div id="timer" class="timer" hidden aria-live="off"></div>
     <div id="bodyHint" class="bodyhint" hidden aria-live="off"></div>
+    <div id="formAlert" class="formalert" hidden role="status" aria-live="assertive"></div>
     <div id="countdown" class="countdown" hidden aria-hidden="true"><span id="countNum">3</span></div>
     <div id="summary" class="summary" hidden role="dialog" aria-label="สรุปผล">
       <h2 id="summaryTitle">สรุปผล</h2>
@@ -277,13 +292,13 @@
   <div id="status"><span class="dot" aria-hidden="true"></span><span id="statusText">พร้อมใช้งาน — กดเริ่มกล้องหรือเลือกไฟล์</span></div>
 
   <section class="card" aria-label="ผลแต่ละครั้ง">
-    <h2>ผลแต่ละครั้ง</h2>
+    <h2 id="perRepTitle">ผลแต่ละครั้ง</h2>
     <ul id="results"></ul>
     <div class="empty" id="resultsEmpty">ยังไม่มี rep — เริ่มจับท่าเพื่อดูผล</div>
   </section>
   <section class="card">
-    <p class="note">คลิปท่อนบน (ไม่เห็นสะโพก/เข่า/ข้อเท้า) จะวัดได้แค่เกณฑ์ <b>ศอก</b> + <b>ความลึก</b> ส่วนหลัง/เข่าจะถูก skip. อยากครบ 4 เกณฑ์ให้ถ่าย <b>เต็มตัวมุมข้าง</b>.</p>
-    <p class="note" style="margin-top:10px;">ประมวลผลในเครื่อง ไม่อัปโหลดวิดีโอ · <a href="privacy.html" style="color:var(--accent);">นโยบายความเป็นส่วนตัว</a></p>
+    <p class="note" id="noteClip">คลิปท่อนบน (ไม่เห็นสะโพก/เข่า/ข้อเท้า) จะวัดได้แค่เกณฑ์ <b>ศอก</b> + <b>ความลึก</b> ส่วนหลัง/เข่าจะถูก skip. อยากครบ 4 เกณฑ์ให้ถ่าย <b>เต็มตัวมุมข้าง</b>.</p>
+    <p class="note" id="notePrivacy" style="margin-top:10px;">ประมวลผลในเครื่อง ไม่อัปโหลดวิดีโอ · <a href="privacy.html" style="color:var(--accent);">นโยบายความเป็นส่วนตัว</a></p>
   </section>
   </section><!-- /view-workout -->
 
@@ -317,17 +332,17 @@
     </section>
 
     <section class="card">
-      <h2>ตั้งค่า</h2>
+      <h2 id="settingsTitle">ตั้งค่า</h2>
       <div class="toggle">
-        <span>เสียงตอนนับ/นับถอยหลัง</span>
+        <span id="soundLabel">เสียงตอนนับ/นับถอยหลัง</span>
         <label class="switch"><input id="setSound" type="checkbox" checked><span class="slider"></span></label>
       </div>
       <button id="btnClearHistory" class="danger" style="width:100%; margin-top:14px;">ล้างประวัติทั้งหมด (ในเครื่อง)</button>
     </section>
 
     <section class="card">
-      <h2>วิธีใช้งาน</h2>
-      <ol class="muted-note" style="padding-left:18px; margin:0;">
+      <h2 id="howtoTitle">วิธีใช้งาน</h2>
+      <ol id="howtoList" class="muted-note" style="padding-left:18px; margin:0;">
         <li>เลือกโหมด: Freestyle / เป้าจำนวน / จับเวลา</li>
         <li>วางมือถือให้เห็น<b>มุมข้าง</b> ทั้งตัว (อยากครบ 4 เกณฑ์ ต้องเห็นสะโพก-เข่า-ข้อเท้า)</li>
         <li>กด "เริ่มกล้อง" → รอนับถอยหลัง 3-2-1 → วิดพื้น</li>
@@ -360,13 +375,13 @@
       <!-- เส้นมอง -->
       <line x1="288" y1="132" x2="150" y2="126" stroke="#4ea1ff" stroke-width="1.5" stroke-dasharray="4 3"/>
     </svg>
-    <ol>
+    <ol id="guideList">
       <li>หัน<b>ด้านข้าง</b>ให้กล้อง (ตั้งฉาก 90° ไม่เฉียง)</li>
       <li>กล้องเห็น<b>เต็มตัว หัวถึงเท้า</b> — ขาดขา = วัดได้แค่ 2 เกณฑ์</li>
       <li>วางกล้อง<b>ต่ำ</b> ระดับลำตัว ห่าง ~1.5-2 ม. แนวนอน</li>
       <li>แสงสว่างพอ ฉากหลังโล่ง</li>
     </ol>
-    <p class="muted-note">เห็นเต็มตัว = ตรวจครบ 4 เกณฑ์ (ศอก/ลึก/หลัง/เข่า)</p>
+    <p class="muted-note" id="guideNote">เห็นเต็มตัว = ตรวจครบ 4 เกณฑ์ (ศอก/ลึก/หลัง/เข่า)</p>
     <button id="btnGuideClose" class="primary" style="width:100%; margin-top:8px;">เข้าใจแล้ว</button>
   </div>
 </div>

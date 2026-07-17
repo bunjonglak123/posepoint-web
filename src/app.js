@@ -8,6 +8,7 @@ import { rank } from "./leaderboard.js";
 import { CONFIG } from "./config.js";
 import { saveSession, listSessions, clearSessions } from "./store.js";
 import * as auth from "./auth.js";
+import { t, getLang, applyStatic, toggleLang } from "./i18n.js";
 
 const $ = (id) => document.getElementById(id);
 const video = $("video"), canvas = $("overlay"), ctx = canvas.getContext("2d");
@@ -21,7 +22,7 @@ const targetRow = $("targetRow"), targetInput = $("targetInput"), targetLabel = 
 const timerEl = $("timer"), countdownEl = $("countdown"), countNum = $("countNum");
 const summaryEl = $("summary"), summaryTitle = $("summaryTitle");
 const sumReps = $("sumReps"), sumCorrect = $("sumCorrect"), sumScore = $("sumScore"), sumTime = $("sumTime");
-const bodyHint = $("bodyHint"), guideEl = $("guide");
+const bodyHint = $("bodyHint"), guideEl = $("guide"), formAlert = $("formAlert");
 
 const MODE_LABEL = { free: "Freestyle", reps: "Reps Goal", time: "Time Attack" };
 let mode = "free", target = 20, ended = false;
@@ -36,8 +37,8 @@ function setMode(m) {
   if (m === "free") { targetRow.hidden = true; }
   else {
     targetRow.hidden = false;
-    targetLabel.textContent = m === "reps" ? "จำนวนครั้ง" : "เวลา (วินาที)";
-    targetUnit.textContent = m === "reps" ? "ครั้ง" : "วินาที";
+    targetLabel.textContent = m === "reps" ? t("targetRepsLabel") : t("targetTimeLabel");
+    targetUnit.textContent = m === "reps" ? t("targetRepsUnit") : t("targetTimeUnit");
     targetInput.value = m === "reps" ? 20 : 30;
   }
 }
@@ -67,7 +68,35 @@ function primeAudio() {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === "suspended") audioCtx.resume();
   } catch { /* ignore */ }
+  // ปลุก speechSynthesis ด้วย (iOS ต้อง speak ครั้งแรกใน gesture)
+  try {
+    if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); }
+  } catch { /* ignore */ }
 }
+
+// เสียงพูดแจ้งฟอร์ม — on-device TTS ตามภาษาแอป
+function speak(text) {
+  if (!soundOn || !("speechSynthesis" in window)) return;
+  try {
+    speechSynthesis.cancel();                       // ตัดคิวเก่า กันพูดซ้อน
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = getLang() === "th" ? "th-TH" : "en-US";
+    u.rate = 1.1;
+    speechSynthesis.speak(u);
+  } catch { /* ignore */ }
+}
+
+// แบนเนอร์ใหญ่กลางจอกล้อง — เห็นจากระยะวิดพื้น ไม่ต้องเลื่อนจอ
+let alertTimer = null;
+function showFormAlert(text, ok) {
+  formAlert.textContent = text;
+  formAlert.className = "formalert " + (ok ? "good" : "bad");
+  formAlert.hidden = false;
+  clearTimeout(alertTimer);
+  alertTimer = setTimeout(() => { formAlert.hidden = true; }, ok ? 1200 : 2200);
+}
+const ALERT_KEY = { elbow: "alertElbow", depth: "alertDepth", back: "alertBack", knee: "alertKnee" };
+const VOICE_KEY = { elbow: "voiceElbow", depth: "voiceDepth", back: "voiceBack", knee: "voiceKnee" };
 
 function stopStream() {
   if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
@@ -88,10 +117,10 @@ function updateStats() {
 
 async function ensureReady() {
   if (ready) return;
-  statusEl.textContent = "กำลังโหลดโมเดล MediaPipe…";
+  statusEl.textContent = t("loadingModel");
   await initPose();
   ready = true;
-  statusEl.textContent = "พร้อม";
+  statusEl.textContent = t("ready");
 }
 
 function resize() {
@@ -102,7 +131,7 @@ function resize() {
 
 function updateBodyHint(lowerVis) {
   const full = lowerVis >= CONFIG.MIN_VISIBILITY;
-  bodyHint.textContent = full ? "✓ เห็นเต็มตัว · 4 เกณฑ์" : "⚠ เห็นแค่ท่อนบน · ขยับให้เห็นขา (2 เกณฑ์)";
+  bodyHint.textContent = full ? t("hintFull") : t("hintUpper");
   bodyHint.className = "bodyhint " + (full ? "ok" : "warn");
 }
 
@@ -144,6 +173,15 @@ function renderRep(res) {
   streak = ok ? streak + 1 : 0;        // ต่อเนื่องถูก = streak
   pulse(repEl, "pop");
   beep(ok ? 760 : 320, 0.09);
+  // แจ้งบนจอกล้อง + เสียงพูด — คนถือถ่าย/คนวิดเห็นและได้ยินโดยไม่ต้องเลื่อนจอ
+  if (ok) {
+    showFormAlert(`✓ ${counter.count}`, true);
+    speak(String(counter.count));                    // นับเลขตามภาษา TTS
+  } else {
+    const key = res.failed[0];                       // แจ้งจุดผิดแรก (สำคัญสุด)
+    showFormAlert(t(ALERT_KEY[key] || "alertDepth"), false);
+    speak(t(VOICE_KEY[key] || "voiceDepth"));
+  }
   updateStats();
   lastEl.textContent = `#${res.index} ${res.verdict}` + (ok ? "" : ": " + res.failed.join(", "));
   lastEl.style.color = ok ? "#3fb950" : "#ff6b6b";
@@ -155,11 +193,11 @@ function renderRep(res) {
 }
 
 function checkEnd(now) {
-  if (mode === "reps" && counter && counter.count >= target) { endWorkout("ครบเป้าหมาย! 🎯"); return true; }
+  if (mode === "reps" && counter && counter.count >= target) { endWorkout(t("goalDone")); return true; }
   if (mode === "time") {
     const rem = target - (now - startMs) / 1000;
     timerEl.textContent = fmtTime(rem);
-    if (rem <= 0) { endWorkout("หมดเวลา!"); return true; }
+    if (rem <= 0) { endWorkout(t("timeUp")); return true; }
   }
   return false;
 }
@@ -228,7 +266,7 @@ async function flipCamera() {
   try {
     await openCamera();                     // สลับสตรีมโดยไม่รีเซ็ตการนับ
   } catch (e) {
-    statusEl.textContent = "สลับกล้องไม่ได้: " + e.message;
+    statusEl.textContent = t("flipFail") + e.message;
   } finally {
     btn.disabled = false;
   }
@@ -241,17 +279,18 @@ function beginSession() {
   lastDetect = 0; fpsCount = 0; fpsT = performance.now(); fpsEl.textContent = "";
   ended = false; summaryEl.hidden = true;
   bodyHint.hidden = false; bodyHint.textContent = "";
+  formAlert.hidden = true;
   timerEl.hidden = mode !== "time";
   if (mode === "time") timerEl.textContent = fmtTime(target);
   running = true; startMs = performance.now();
-  statusEl.textContent = mode === "reps" ? `เป้า ${target} ครั้ง — เริ่ม!`
-    : mode === "time" ? `จับเวลา ${fmtTime(target)} — เริ่ม!` : "กำลังจับท่า…";
+  statusEl.textContent = mode === "reps" ? t("startReps", target)
+    : mode === "time" ? t("startTime", fmtTime(target)) : t("tracking");
   loop();
 }
 
 async function endWorkout(title) {
   if (ended) return;
-  ended = true; running = false; timerEl.hidden = true; bodyHint.hidden = true;
+  ended = true; running = false; timerEl.hidden = true; bodyHint.hidden = true; formAlert.hidden = true;
   stopStream();
   await finalize();
   showSummary(title);
@@ -269,11 +308,11 @@ function showSummary(title) {
 
 async function stopSession() {
   if (!running) return;
-  await endWorkout("จบเซต");
+  await endWorkout(t("setDone"));
 }
 
 async function finalize() {
-  if (!results.length) { statusEl.textContent = "ไม่พบ rep"; return; }
+  if (!results.length) { statusEl.textContent = t("noReps"); return; }
   const correct = results.filter(r => r.verdict === "CORRECT").length;
   const sess = {
     sessionId: crypto.randomUUID(), user: "local", mode: MODE_LABEL[mode],
@@ -284,7 +323,7 @@ async function finalize() {
     perRep: results.map(r => ({ index: r.index, score: repScore(r), verdict: r.verdict, failed: r.failed, skipped: r.skipped }))
   };
   await saveSession(sess);
-  statusEl.textContent = `จบ: ${sess.repsCompleted} reps | ถูก ${correct} | avg ${sess.avgScore}`;
+  statusEl.textContent = t("finalized", sess.repsCompleted, correct, sess.avgScore);
   await renderLeaderboard();
 }
 
@@ -294,8 +333,8 @@ async function renderLeaderboard() {
     if (auth.isConfigured() && auth.currentUser()) entries = entries.concat(await auth.fetchLeaderboard());
   } catch { /* cloud optional */ }
   const top = rank(entries).slice(0, 10);
-  lbEl.innerHTML = "<h2>อันดับ</h2>";
-  if (!top.length) { lbEl.insertAdjacentHTML("beforeend", '<p class="muted-note">ยังไม่มีข้อมูล — เล่นสักเซตก่อน</p>'); return; }
+  lbEl.innerHTML = `<h2>${t("lbTitle")}</h2>`;
+  if (!top.length) { lbEl.insertAdjacentHTML("beforeend", `<p class="muted-note">${t("lbEmpty")}</p>`); return; }
   for (const s of top) {
     const row = document.createElement("div");
     row.className = "lb-row";
@@ -309,7 +348,7 @@ async function runFile(file) {
   await ensureReady();
   stopStream(); video.src = URL.createObjectURL(file);
   await video.play().catch(() => {}); resize(); beginSession();
-  video.onended = () => endWorkout("จบคลิป");   // โชว์ summary เหมือนโหมดกล้อง
+  video.onended = () => endWorkout(t("clipDone"));   // โชว์ summary เหมือนโหมดกล้อง
 }
 
 // expose สำหรับ headless verification
@@ -340,6 +379,23 @@ $("btnSample").onclick = () => window.posepoint.runVideoUrl("sample.mp4")
   .then(r => statusEl.textContent = `sample: ${r.reps} reps`)
   .catch(e => statusEl.textContent = e.message);
 $("file").onchange = (e) => { if (e.target.files[0]) runFile(e.target.files[0]); };
+
+// ---------- language toggle ----------
+applyStatic();                                       // ใช้ภาษาที่จำไว้ตอนโหลด
+if (getLang() !== "th") statusEl.textContent = t("readyIdle");   // status เริ่มต้นใน HTML เป็นไทย
+function refreshLangUI() {
+  applyStatic();
+  // อัปเดต label เป้าหมายโดยไม่รีเซ็ตค่าที่ผู้ใช้พิมพ์
+  if (mode !== "free") {
+    targetLabel.textContent = mode === "reps" ? t("targetRepsLabel") : t("targetTimeLabel");
+    targetUnit.textContent = mode === "reps" ? t("targetRepsUnit") : t("targetTimeUnit");
+  }
+  if (!running && !camActive()) statusEl.textContent = t("readyIdle");
+  if (!auth.isConfigured()) authConfigNote.innerHTML = t("noFirebase");
+  renderLeaderboard().catch(() => {});
+  if (!$("view-history").hidden) renderHistory();
+}
+$("btnLang").onclick = () => { toggleLang(); refreshLangUI(); };
 
 // ---------- camera guide ----------
 $("btnGuide").onclick = () => { guideEl.hidden = false; };
@@ -374,11 +430,11 @@ async function renderHistory() {
   empty.style.display = sessions.length ? "none" : "";
   for (const s of sessions) {
     const d = new Date(s.timestamp);
-    const when = isNaN(d.getTime()) ? "" : d.toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" });
+    const when = isNaN(d.getTime()) ? "" : d.toLocaleString(getLang() === "th" ? "th-TH" : "en-GB", { dateStyle: "short", timeStyle: "short" });
     const el = document.createElement("div");
     el.className = "history-item";
-    el.innerHTML = `<div><div class="big">${s.repsCompleted} ครั้ง</div>`
-      + `<div class="meta">${s.mode} · ถูก ${s.correctCount} · ${when}</div></div>`
+    el.innerHTML = `<div><div class="big">${s.repsCompleted} ${t("reps")}</div>`
+      + `<div class="meta">${s.mode} · ${t("correctWord")} ${s.correctCount} · ${when}</div></div>`
       + `<div class="big">${Math.round(s.avgScore)}</div>`;
     list.appendChild(el);
   }
@@ -389,7 +445,7 @@ const setSound = $("setSound");
 setSound.checked = soundOn;
 setSound.onchange = () => { soundOn = setSound.checked; localStorage.setItem("pp_sound", soundOn ? "1" : "0"); if (soundOn) beep(); };
 $("btnClearHistory").onclick = async () => {
-  if (!confirm("ล้างประวัติทั้งหมดในเครื่อง?")) return;
+  if (!confirm(t("confirmClear"))) return;
   await clearSessions(); await renderHistory(); await renderLeaderboard();
 };
 
@@ -403,8 +459,7 @@ function setAuthUI(user) {
 }
 async function initAuth() {
   if (!auth.isConfigured()) {
-    authConfigNote.innerHTML = "ยังไม่ได้ตั้งค่า Firebase — แอปใช้งานแบบในเครื่องได้ปกติ ใส่ค่าใน "
-      + "<code>src/firebase-config.js</code> เพื่อเปิด account + cloud";
+    authConfigNote.innerHTML = t("noFirebase");
     $("btnSignIn").disabled = true; $("btnSignUp").disabled = true;
     return;
   }
@@ -423,15 +478,15 @@ $("btnSignUp").onclick = async () => {
 };
 $("btnSignOut").onclick = () => auth.signOutUser();
 $("btnSyncCloud").onclick = async () => {
-  syncNote.textContent = "กำลังซิงค์…";
+  syncNote.textContent = t("syncing");
   try {
     const sessions = await listSessions();
-    if (!sessions.length) { syncNote.textContent = "ไม่มีข้อมูลให้ซิงค์"; return; }
+    if (!sessions.length) { syncNote.textContent = t("syncNone"); return; }
     const best = rank(sessions)[0];
     await auth.pushLeaderboard({ avgScore: best.avgScore, repsCompleted: best.repsCompleted });
-    syncNote.textContent = "ซิงค์สำเร็จ ✓";
+    syncNote.textContent = t("syncOk");
     renderLeaderboard().catch(() => {});
-  } catch (e) { syncNote.textContent = "ซิงค์ไม่ได้: " + e.message; }
+  } catch (e) { syncNote.textContent = t("syncFail") + e.message; }
 };
 
 initAuth().catch(() => {});
