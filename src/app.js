@@ -8,7 +8,7 @@ import { rank } from "./leaderboard.js";
 import { CONFIG } from "./config.js";
 import { saveSession, listSessions, clearSessions } from "./store.js";
 import * as auth from "./auth.js";
-import { t, getLang, applyStatic, toggleLang } from "./i18n.js";
+import { t, getLang, applyStatic, toggleLang } from "./i18n.js?v=10";
 
 const $ = (id) => document.getElementById(id);
 const video = $("video"), canvas = $("overlay"), ctx = canvas.getContext("2d");
@@ -21,7 +21,7 @@ let lastDetect = 0, fpsCount = 0, fpsT = 0;
 const targetRow = $("targetRow"), targetInput = $("targetInput"), targetLabel = $("targetLabel"), targetUnit = $("targetUnit");
 const timerEl = $("timer"), countdownEl = $("countdown"), countNum = $("countNum");
 const summaryEl = $("summary"), summaryTitle = $("summaryTitle");
-const sumReps = $("sumReps"), sumCorrect = $("sumCorrect"), sumScore = $("sumScore"), sumTime = $("sumTime");
+const sumReps = $("sumReps"), sumCorrect = $("sumCorrect"), sumScore = $("sumScore"), sumTime = $("sumTime"), sumBest = $("sumBest");
 const bodyHint = $("bodyHint"), guideEl = $("guide"), formAlert = $("formAlert");
 
 const MODE_LABEL = { free: "Freestyle", reps: "Reps Goal", time: "Time Attack" };
@@ -102,7 +102,7 @@ function stopStream() {
   if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
 }
 
-let counter = null, results = [], running = false, ready = false, startMs = 0, streak = 0, facing = "environment";
+let counter = null, results = [], running = false, ready = false, startMs = 0, streak = 0, facing = "environment", newBestFlag = false;
 
 function pulse(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
 
@@ -303,7 +303,21 @@ function showSummary(title) {
   sumCorrect.textContent = correct;
   sumScore.textContent = results.length ? Math.round(sessionScore(results)) : 0;
   sumTime.textContent = fmtTime((performance.now() - startMs) / 1000);
+  sumBest.hidden = !newBestFlag;                       // ป้ายสถิติใหม่ (คำนวณใน finalize)
+  sumBest.textContent = t("newBest");
   summaryEl.hidden = false;
+}
+
+// แชร์ผล: Web Share API (มือถือ) -> fallback คัดลอกลง clipboard
+async function shareResult() {
+  const text = t("shareText", sumReps.textContent, sumCorrect.textContent, sumScore.textContent, sumTime.textContent);
+  const btn = $("btnShareLabel");
+  try {
+    if (navigator.share) { await navigator.share({ title: "PosePoint", text }); return; }
+    await navigator.clipboard.writeText(text);
+    const prev = btn.textContent; btn.textContent = t("copied");
+    setTimeout(() => { btn.textContent = prev; }, 1500);
+  } catch { /* user ยกเลิก share = ไม่ทำอะไร */ }
 }
 
 async function stopSession() {
@@ -312,7 +326,7 @@ async function stopSession() {
 }
 
 async function finalize() {
-  if (!results.length) { statusEl.textContent = t("noReps"); return; }
+  if (!results.length) { newBestFlag = false; statusEl.textContent = t("noReps"); return; }
   const correct = results.filter(r => r.verdict === "CORRECT").length;
   const sess = {
     sessionId: crypto.randomUUID(), user: "local", mode: MODE_LABEL[mode],
@@ -322,6 +336,11 @@ async function finalize() {
     timestamp: new Date().toISOString(),
     perRep: results.map(r => ({ index: r.index, score: repScore(r), verdict: r.verdict, failed: r.failed, skipped: r.skipped }))
   };
+  // สถิติใหม่? เทียบคะแนนกับเซสชันเดิม "ก่อน" บันทึกอันนี้
+  try {
+    const prevBest = Math.max(0, ...(await listSessions()).map(s => +s.avgScore || 0));
+    newBestFlag = sess.avgScore > prevBest;
+  } catch { newBestFlag = false; }
   await saveSession(sess);
   statusEl.textContent = t("finalized", sess.repsCompleted, correct, sess.avgScore);
   await renderLeaderboard();
@@ -387,6 +406,7 @@ $("btnAgain").onclick = () => {
   startCamera().catch(e => { statusEl.textContent = "Error: " + e.message; summaryEl.hidden = false; });
 };
 $("btnStop").onclick = () => stopSession();
+$("btnShare").onclick = () => shareResult();
 $("btnSample").onclick = () => window.posepoint.runVideoUrl("sample.mp4")
   .then(r => statusEl.textContent = `sample: ${r.reps} reps`)
   .catch(e => statusEl.textContent = e.message);

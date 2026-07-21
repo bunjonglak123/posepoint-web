@@ -93,6 +93,8 @@
   .sum-cell .l{font-size:12px; color:var(--muted-fg); text-transform:uppercase;}
   .sum-cell .v{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:30px; font-variant-numeric:tabular-nums; color:var(--secondary);}
   .summary .primary{max-width:340px;}
+  .sum-best{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:22px; color:#FBBF24; letter-spacing:.5px; animation:reppop 500ms cubic-bezier(.2,.7,.2,1);}
+  .sum-actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center;}
   /* views + bottom nav */
   .view{display:flex; flex-direction:column; gap:var(--gap);}
   .view[hidden]{display:none;}
@@ -238,13 +240,20 @@
     <div id="countdown" class="countdown" hidden aria-hidden="true"><span id="countNum">3</span></div>
     <div id="summary" class="summary" hidden role="dialog" aria-label="สรุปผล">
       <h2 id="summaryTitle">สรุปผล</h2>
+      <div id="sumBest" class="sum-best" hidden>🏆 สถิติใหม่!</div>
       <div class="sum-grid">
         <div class="sum-cell"><div class="l">ครั้งทั้งหมด</div><div class="v" id="sumReps">0</div></div>
         <div class="sum-cell"><div class="l">ถูกต้อง</div><div class="v" id="sumCorrect">0</div></div>
         <div class="sum-cell"><div class="l">คะแนนเฉลี่ย</div><div class="v" id="sumScore">0</div></div>
         <div class="sum-cell"><div class="l">เวลา</div><div class="v" id="sumTime">0s</div></div>
       </div>
-      <button id="btnAgain" class="primary" style="width:auto;padding:0 28px;">เริ่มใหม่</button>
+      <div class="sum-actions">
+        <button id="btnShare" class="ghost" style="width:auto;padding:0 20px;" aria-label="แชร์ผล">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
+          <span id="btnShareLabel">แชร์</span>
+        </button>
+        <button id="btnAgain" class="primary" style="width:auto;padding:0 28px;">เริ่มใหม่</button>
+      </div>
     </div>
     <div id="fps" class="fps" aria-hidden="true"></div>
     <button id="btnFlip" class="flip" aria-label="สลับกล้องหน้า/หลัง" title="สลับกล้องหน้า/หลัง">
@@ -405,6 +414,6 @@
   </button>
 </nav>
 
-<script type="module" src="src/app.js"></script>
+<script type="module" src="src/app.js?v=10"></script>
 </body>
 </html>
