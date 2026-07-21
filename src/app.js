@@ -338,9 +338,21 @@ async function renderLeaderboard() {
   for (const s of top) {
     const row = document.createElement("div");
     row.className = "lb-row";
-    row.innerHTML = `<span>#${s.rank} ${s.user || "local"}</span><span>${Math.round(s.avgScore)} · ${s.repsCompleted} reps</span>`;
+    // textContent ทั้งหมด: กัน stored XSS จาก cloud doc ที่ผู้ใช้เขียนเองได้ (user/reps)
+    const who = document.createElement("span");
+    who.textContent = `#${s.rank} ${maskUser(s.user)}`;
+    const stat = document.createElement("span");
+    stat.textContent = `${Math.round(+s.avgScore) || 0} · ${Math.max(0, Math.trunc(+s.repsCompleted) || 0)} reps`;
+    row.append(who, stat);
     lbEl.appendChild(row);
   }
+}
+
+// โชว์เฉพาะส่วนหน้า @ บน leaderboard สาธารณะ (ไม่รั่วอีเมลเต็ม)
+function maskUser(u) {
+  if (!u || u === "local") return "local";
+  const at = String(u).indexOf("@");
+  return at > 0 ? String(u).slice(0, at) : String(u);
 }
 
 // โหมดไฟล์ (ทดสอบ/cross-check): เลือกไฟล์วิดีโอ -> ประมวลผลจนจบ
