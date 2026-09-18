@@ -15,8 +15,10 @@ export class RepCounter {
     } else if (this.state === "down" && f.elbowAngle > this.cfg.ELBOW_UP) {
       this.state = "up";
       const m = this._finalize();
+      const frames = this._buf;
       this._buf = [];
-      if (m.valid) { this.count += 1; m.index = this.count; return m; }
+      // แนบเฟรมของครั้งนี้ให้โมเดล ML สกัดคุณลักษณะ (ช่วงเดียวกับที่ train_model.py ใช้เทรน)
+      if (m.valid) { this.count += 1; m.index = this.count; m.frames = frames; return m; }
       return null;   // ไหล่ไม่ขยับ = งอแขนหลอก ไม่ใช่ push-up จริง -> ไม่นับ
     }
     return null;

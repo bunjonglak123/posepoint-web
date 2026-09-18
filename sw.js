@@ -1,12 +1,13 @@
-﻿// service worker ขั้นต่ำ — cache app shell ให้ทำงานออฟไลน์ (PWA)
-const CACHE = "posepoint-v10";
+// service worker ขั้นต่ำ — cache app shell ให้ทำงานออฟไลน์ (PWA)
+const CACHE = "posepoint-v18";
 const SHELL = [
   "./", "index.html", "manifest.webmanifest", "icon.svg",
   "icon-192.png", "icon-512.png", "icon-maskable-512.png",
   "src/app.js", "src/i18n.js", "src/config.js", "src/geometry.js", "src/landmarks.js",
   "src/features.js", "src/counter.js", "src/criteria.js", "src/scoring.js",
   "src/leaderboard.js", "src/poseService.js", "src/store.js",
-  "src/auth.js", "src/firebase-config.js"
+  "src/auth.js", "src/firebase-config.js",
+  "src/repFeatures.js", "src/mlModel.js", "src/judge.js", "model/pushup_rf.json"
 ];
 
 self.addEventListener("install", (e) => {
@@ -19,5 +20,6 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   // โมเดล/wasm จาก CDN: ไป network ตรง (อย่า cache shell)
   if (url.origin !== location.origin) return;
-  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+  // ignoreSearch: หน้าเว็บโหลด app.js?v=11 / i18n.js?v=11 แต่ cache เก็บชื่อไม่มี query
+  e.respondWith(caches.match(e.request, { ignoreSearch: true }).then(r => r || fetch(e.request)));
 });

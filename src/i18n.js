@@ -33,6 +33,10 @@ const STR = {
     // voice (พูดเต็ม)
     voiceElbow: "งอศอกให้ลึกกว่านี้", voiceDepth: "ลงให้ลึกกว่านี้",
     voiceBack: "หลังแอ่น เกร็งลำตัว", voiceKnee: "เหยียดเข่าให้ตรง",
+    alertForm: "ท่ายังไม่ถูก!", voiceForm: "ปรับท่าให้ถูกต้อง",
+    // โมเดล ML
+    mlReady: (v) => `ใช้โมเดล ML ตัดสินท่า (รุ่น ${v})`, mlLoading: "กำลังโหลดโมเดล ML…",
+    mlFallback: "โหลดโมเดล ML ไม่ได้ — ใช้เกณฑ์เชิงกฎแทน", mlOff: "ปิดอยู่ — ใช้เกณฑ์เชิงกฎตัดสินท่า",
     // static UI (selector -> text)
     _: {
       "header .sub": "นับ + ตรวจฟอร์มวิดพื้น · on-device",
@@ -55,7 +59,7 @@ const STR = {
       "#btnSignIn": "เข้าสู่ระบบ", "#btnSignUp": "สมัคร",
       "#btnSyncCloud": "ซิงค์ขึ้นคลาวด์", "#btnSignOut": "ออกจากระบบ",
       "#authSignedIn > p": "เข้าสู่ระบบในชื่อ",
-      "#settingsTitle": "ตั้งค่า", "#soundLabel": "เสียงตอนนับ/นับถอยหลัง/พูดเตือน",
+      "#settingsTitle": "ตั้งค่า", "#soundLabel": "เสียงตอนนับ/นับถอยหลัง/พูดเตือน", "#mlLabel": "ใช้โมเดล ML ตัดสินท่า",
       "#btnClearHistory": "ล้างประวัติทั้งหมด (ในเครื่อง)",
       "#howtoTitle": "วิธีใช้งาน",
       "#guide h2": "วางกล้องแบบนี้", "#btnGuideClose": "เข้าใจแล้ว",
@@ -98,6 +102,9 @@ const STR = {
     alertElbow: "ELBOWS!", alertDepth: "GO LOWER!", alertBack: "BACK SAGGING!", alertKnee: "KNEES BENT!",
     voiceElbow: "Bend your elbows more", voiceDepth: "Go lower",
     voiceBack: "Keep your back straight", voiceKnee: "Straighten your knees",
+    alertForm: "CHECK FORM!", voiceForm: "Fix your form",
+    mlReady: (v) => `ML model judges form (v${v})`, mlLoading: "Loading ML model…",
+    mlFallback: "ML model unavailable — using rule-based check", mlOff: "Off — using rule-based check",
     _: {
       "header .sub": "Push-up counter + form check · on-device",
       "#modeFree": "Freestyle", "#modeReps": "Reps Goal", "#modeTime": "Time Attack",
@@ -119,7 +126,7 @@ const STR = {
       "#btnSignIn": "Sign In", "#btnSignUp": "Sign Up",
       "#btnSyncCloud": "Sync to Cloud", "#btnSignOut": "Sign Out",
       "#authSignedIn > p": "Signed in as",
-      "#settingsTitle": "Settings", "#soundLabel": "Sound (count / countdown / voice)",
+      "#settingsTitle": "Settings", "#soundLabel": "Sound (count / countdown / voice)", "#mlLabel": "Judge form with ML model",
       "#btnClearHistory": "Clear all history (local)",
       "#howtoTitle": "How to Use",
       "#guide h2": "Place Camera Like This", "#btnGuideClose": "Got it",

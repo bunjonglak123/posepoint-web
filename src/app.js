@@ -2,21 +2,22 @@ import { initPose, detect } from "./poseService.js";
 import { selectSide } from "./landmarks.js";
 import { computeFeatures } from "./features.js";
 import { RepCounter } from "./counter.js";
-import { evaluateRep } from "./criteria.js";
 import { repScore, sessionScore } from "./scoring.js";
 import { rank } from "./leaderboard.js";
-import { CONFIG } from "./config.js";
+import { CONFIG, APP } from "./config.js";
 import { saveSession, listSessions, clearSessions } from "./store.js";
 import * as auth from "./auth.js";
-import { t, getLang, applyStatic, toggleLang } from "./i18n.js?v=10";
+import { t, getLang, applyStatic, toggleLang } from "./i18n.js?v=11";
+import { loadModel } from "./mlModel.js";
+import { judgeRep } from "./judge.js";
 
 const $ = (id) => document.getElementById(id);
 const video = $("video"), canvas = $("overlay"), ctx = canvas.getContext("2d");
 const statusEl = $("statusText"), repEl = $("rep"), lastEl = $("last"), resultsEl = $("results"), lbEl = $("leaderboard"), resultsEmpty = $("resultsEmpty");
 const statStreak = $("statStreak"), statScore = $("statScore"), statCorrect = $("statCorrect"), fpsEl = $("fps");
 
-const DETECT_INTERVAL = 1000 / 24;   // จำกัด detection ~24fps (กัน backlog/ค้าง)
-let lastDetect = 0, fpsCount = 0, fpsT = 0;
+const DETECT_INTERVAL = 1000 / APP.DETECT_FPS;   // จำกัดอัตราการตรวจจับ (กัน backlog/ค้าง)
+let lastDetect = 0, fpsCount = 0, fpsT = 0, lastTs = 0;
 
 const targetRow = $("targetRow"), targetInput = $("targetInput"), targetLabel = $("targetLabel"), targetUnit = $("targetUnit");
 const timerEl = $("timer"), countdownEl = $("countdown"), countNum = $("countNum");
@@ -39,7 +40,7 @@ function setMode(m) {
     targetRow.hidden = false;
     targetLabel.textContent = m === "reps" ? t("targetRepsLabel") : t("targetTimeLabel");
     targetUnit.textContent = m === "reps" ? t("targetRepsUnit") : t("targetTimeUnit");
-    targetInput.value = m === "reps" ? 20 : 30;
+    targetInput.value = m === "reps" ? APP.DEFAULT_TARGET.reps : APP.DEFAULT_TARGET.seconds;
   }
 }
 
@@ -93,10 +94,24 @@ function showFormAlert(text, ok) {
   formAlert.className = "formalert " + (ok ? "good" : "bad");
   formAlert.hidden = false;
   clearTimeout(alertTimer);
-  alertTimer = setTimeout(() => { formAlert.hidden = true; }, ok ? 1200 : 2200);
+  alertTimer = setTimeout(() => { formAlert.hidden = true; }, ok ? APP.ALERT_MS.ok : APP.ALERT_MS.bad);
 }
-const ALERT_KEY = { elbow: "alertElbow", depth: "alertDepth", back: "alertBack", knee: "alertKnee" };
-const VOICE_KEY = { elbow: "voiceElbow", depth: "voiceDepth", back: "voiceBack", knee: "voiceKnee" };
+const ALERT_KEY = { elbow: "alertElbow", depth: "alertDepth", back: "alertBack", knee: "alertKnee", form: "alertForm" };
+const VOICE_KEY = { elbow: "voiceElbow", depth: "voiceDepth", back: "voiceBack", knee: "voiceKnee", form: "voiceForm" };
+
+// ---------- โมเดล ML ตัดสินท่า (Random Forest, รันในเบราว์เซอร์) ----------
+let mlModel = null, mlError = false;
+let mlOn = localStorage.getItem("pp_ml") !== "0";
+loadModel(APP.MODEL_URL)
+  .then(m => { mlModel = m; })
+  .catch(() => { mlError = true; })          // โหลดไม่ได้ -> ใช้เกณฑ์เชิงกฎแทน
+  .finally(() => updateMlStatus());
+
+function updateMlStatus() {
+  const el = $("mlStatus");
+  if (!el) return;
+  el.textContent = !mlOn ? t("mlOff") : mlModel ? t("mlReady", mlModel.version) : mlError ? t("mlFallback") : t("mlLoading");
+}
 
 function stopStream() {
   if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
@@ -140,16 +155,18 @@ function drawOverlay(lm) {
   if (!lm) return;
   const pts = ["shoulder", "elbow", "wrist", "hip", "knee", "ankle"];
   const px = (p) => [p.x * canvas.width, p.y * canvas.height];
-  ctx.lineWidth = 3; ctx.strokeStyle = "#4ea1ff";
+  ctx.lineWidth = APP.SKELETON.lineWidth; ctx.strokeStyle = APP.SKELETON.line;
   const line = (a, b) => { const [x1, y1] = px(lm[a]), [x2, y2] = px(lm[b]); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
   line("shoulder", "elbow"); line("elbow", "wrist");
   line("shoulder", "hip"); line("hip", "knee"); line("knee", "ankle");
-  ctx.fillStyle = "#7ee787";
-  for (const k of pts) { const [x, y] = px(lm[k]); ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = APP.SKELETON.joint;
+  for (const k of pts) { const [x, y] = px(lm[k]); ctx.beginPath(); ctx.arc(x, y, APP.SKELETON.jointRadius, 0, Math.PI * 2); ctx.fill(); }
 }
 
-function processFrame(tsMs) {
-  const raw = detect(video, tsMs);
+function processFrame(tsMs, source = video) {
+  // MediaPipe VIDEO mode ต้องได้ timestamp เพิ่มขึ้นเสมอ แม้สลับระหว่างวิเคราะห์ไฟล์กับกล้อง
+  lastTs = Math.max(tsMs, lastTs + 1);
+  const raw = detect(source, lastTs);
   if (!raw) { drawOverlay(null); return; }
   const { landmarks } = selectSide(raw);
   // gate core joints — ไม่วาด/ไม่นับถ้า confidence ต่ำ (กันจับ background)
@@ -160,7 +177,7 @@ function processFrame(tsMs) {
   updateBodyHint(f.lowerVis);
   const m = counter.update(f);
   if (m) {
-    const res = evaluateRep(m, CONFIG);
+    const res = judgeRep(m, CONFIG, mlModel, mlOn);
     results.push(res);
     renderRep(res);
   }
@@ -172,7 +189,7 @@ function renderRep(res) {
   const ok = res.verdict === "CORRECT";
   streak = ok ? streak + 1 : 0;        // ต่อเนื่องถูก = streak
   pulse(repEl, "pop");
-  beep(ok ? 760 : 320, 0.09);
+  beep(...(ok ? [APP.BEEP.repOk.freq, APP.BEEP.repOk.dur] : [APP.BEEP.repBad.freq, APP.BEEP.repBad.dur]));
   // แจ้งบนจอกล้อง + เสียงพูด — คนถือถ่าย/คนวิดเห็นและได้ยินโดยไม่ต้องเลื่อนจอ
   if (ok) {
     showFormAlert(`✓ ${counter.count}`, true);
@@ -187,7 +204,8 @@ function renderRep(res) {
   lastEl.style.color = ok ? "#3fb950" : "#ff6b6b";
   const li = document.createElement("li");
   const sk = res.skipped.length ? ` (skip: ${res.skipped.join(",")})` : "";
-  li.textContent = `#${res.index} ${res.verdict} — score ${repScore(res)}${res.failed.length ? " | fail: " + res.failed.join(",") : ""}${sk}`;
+  const by = res.judge === "ml" ? " [ML]" : "";
+  li.textContent = `#${res.index} ${res.verdict}${by} — score ${repScore(res)}${res.failed.length ? " | fail: " + res.failed.join(",") : ""}${sk}`;
   li.style.color = ok ? "#3fb950" : "#ff6b6b";
   resultsEl.appendChild(li);
 }
@@ -230,14 +248,14 @@ function camActive() { return !!video.srcObject; }
 
 function countdown() {
   return new Promise((resolve) => {
-    let n = 3;
+    let n = APP.COUNTDOWN_FROM;
     countdownEl.hidden = false;
     const tick = () => {
-      if (n > 0) { countNum.textContent = n; countNum.className = "anim"; beep(440, 0.1); }
-      else if (n === 0) { countNum.textContent = "GO"; countNum.className = "go anim"; beep(880, 0.18); }
+      if (n > 0) { countNum.textContent = n; countNum.className = "anim"; beep(APP.BEEP.countdown.freq, APP.BEEP.countdown.dur); }
+      else if (n === 0) { countNum.textContent = "GO"; countNum.className = "go anim"; beep(APP.BEEP.go.freq, APP.BEEP.go.dur); }
       void countNum.offsetWidth;
       if (n < 0) { countdownEl.hidden = true; resolve(); return; }
-      n--; setTimeout(tick, 700);
+      n--; setTimeout(tick, APP.COUNTDOWN_STEP_MS);
     };
     tick();
   });
@@ -249,7 +267,7 @@ async function startCamera() {
   primeAudio();              // ปลุกเสียงภายใน gesture (iOS)
   try {
     await ensureReady();
-    target = Math.max(1, parseInt(targetInput.value, 10) || (mode === "reps" ? 20 : 30));
+    target = Math.max(1, parseInt(targetInput.value, 10) || (mode === "reps" ? APP.DEFAULT_TARGET.reps : APP.DEFAULT_TARGET.seconds));
     await openCamera();
     await countdown();
     beginSession();
@@ -334,7 +352,12 @@ async function finalize() {
     avgScore: Math.round(sessionScore(results) * 10) / 10,
     durationS: Math.round((performance.now() - startMs) / 1000),
     timestamp: new Date().toISOString(),
-    perRep: results.map(r => ({ index: r.index, score: repScore(r), verdict: r.verdict, failed: r.failed, skipped: r.skipped }))
+    judge: results.some(r => r.judge === "ml") ? "ml" : "rule",
+    modelVersion: mlModel && mlOn ? mlModel.version : null,
+    perRep: results.map(r => ({
+      index: r.index, score: repScore(r), verdict: r.verdict, failed: r.failed, skipped: r.skipped,
+      judge: r.judge, ...(r.judge === "ml" ? { pIncorrect: +r.pIncorrect.toFixed(APP.PROB_DECIMALS), ruleFailed: r.ruleFailed } : {})
+    }))
   };
   // สถิติใหม่? เทียบคะแนนกับเซสชันเดิม "ก่อน" บันทึกอันนี้
   try {
@@ -351,7 +374,7 @@ async function renderLeaderboard() {
   try {
     if (auth.isConfigured() && auth.currentUser()) entries = entries.concat(await auth.fetchLeaderboard());
   } catch { /* cloud optional */ }
-  const top = rank(entries).slice(0, 10);
+  const top = rank(entries).slice(0, APP.LEADERBOARD_SIZE);
   lbEl.innerHTML = `<h2>${t("lbTitle")}</h2>`;
   if (!top.length) { lbEl.insertAdjacentHTML("beforeend", `<p class="muted-note">${t("lbEmpty")}</p>`); return; }
   for (const s of top) {
@@ -391,7 +414,25 @@ window.posepoint = {
     resize(); beginSession();
     await new Promise(r => { video.onended = r; video.play(); });
     running = false;
-    return { reps: counter.count, results: results.map(x => ({ v: x.verdict, f: x.failed, s: x.skipped })) };
+    return { reps: counter.count, results: results.map(x => ({ v: x.verdict, f: x.failed, s: x.skipped, j: x.judge, score: repScore(x), p: x.pIncorrect })) };
+  },
+  // วิเคราะห์ทีละเฟรมด้วยการ seek (ไม่พึ่ง requestAnimationFrame) — ใช้วัดผลฝั่งเว็บ/ตรวจในเบราว์เซอร์ที่ไม่ render
+  async analyzeVideoUrl(url, fps = APP.ANALYZE_FPS) {
+    await ensureReady();
+    stopStream(); video.src = url; video.muted = true;
+    await new Promise((res, rej) => { video.onloadeddata = res; video.onerror = () => rej(new Error("โหลดวิดีโอไม่ได้")); });
+    resize(); beginSession(); running = false;          // หยุด loop อัตโนมัติ แล้วเดินเฟรมเอง
+    const step = 1 / fps;
+    // คัดลอกเฟรมลง canvas ก่อนตรวจจับ: ได้ภาพจริงแม้เบราว์เซอร์ไม่ได้ render วิดีโอบนจอ
+    const frame = document.createElement("canvas");
+    frame.width = video.videoWidth; frame.height = video.videoHeight;
+    const fctx = frame.getContext("2d");
+    for (let i = 0; i * step < video.duration; i++) {
+      await new Promise(r => { video.onseeked = r; video.currentTime = i * step; });
+      fctx.drawImage(video, 0, 0, frame.width, frame.height);
+      processFrame(lastTs + 1000 / fps, frame);          // เดินเวลาตามเฟรมของวิดีโอ (processFrame กันย้อนเวลาให้)
+    }
+    return { reps: counter.count, results: results.map(x => ({ v: x.verdict, f: x.failed, s: x.skipped, j: x.judge, score: repScore(x), p: x.pIncorrect, rule: x.ruleFailed, feat: x.features })) };
   },
   state: () => ({ ready, reps: counter ? counter.count : 0 })
 };
@@ -424,6 +465,7 @@ function refreshLangUI() {
   }
   if (!running && !camActive()) statusEl.textContent = t("readyIdle");
   if (!auth.isConfigured()) authConfigNote.innerHTML = t("noFirebase");
+  updateMlStatus();
   renderLeaderboard().catch(() => {});
   if (!$("view-history").hidden) renderHistory();
 }
@@ -476,6 +518,10 @@ async function renderHistory() {
 const setSound = $("setSound");
 setSound.checked = soundOn;
 setSound.onchange = () => { soundOn = setSound.checked; localStorage.setItem("pp_sound", soundOn ? "1" : "0"); if (soundOn) beep(); };
+const setMl = $("setMl");
+setMl.checked = mlOn;
+setMl.onchange = () => { mlOn = setMl.checked; localStorage.setItem("pp_ml", mlOn ? "1" : "0"); updateMlStatus(); };
+updateMlStatus();
 $("btnClearHistory").onclick = async () => {
   if (!confirm(t("confirmClear"))) return;
   await clearSessions(); await renderHistory(); await renderLeaderboard();

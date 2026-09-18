@@ -346,6 +346,11 @@
         <span id="soundLabel">เสียงตอนนับ/นับถอยหลัง</span>
         <label class="switch"><input id="setSound" type="checkbox" checked><span class="slider"></span></label>
       </div>
+      <div class="toggle">
+        <span id="mlLabel">ใช้โมเดล ML ตัดสินท่า</span>
+        <label class="switch"><input id="setMl" type="checkbox" checked><span class="slider"></span></label>
+      </div>
+      <p class="muted-note" id="mlStatus" role="status" style="margin-top:6px;"></p>
       <button id="btnClearHistory" class="danger" style="width:100%; margin-top:14px;">ล้างประวัติทั้งหมด (ในเครื่อง)</button>
     </section>
 
@@ -414,6 +419,6 @@
   </button>
 </nav>
 
-<script type="module" src="src/app.js?v=10"></script>
+<script type="module" src="src/app.js?v=17"></script>
 </body>
 </html>

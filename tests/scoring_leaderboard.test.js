@@ -15,6 +15,11 @@ test("rep score full / deduct / floor", () => {
 test("session score mean", () => {
   assert.equal(sessionScore([r([]), r(["depth"])]), 87.5);
 });
+test("ใช้คะแนนจากโมเดล ML เมื่อมี (แทนการหักตามเกณฑ์)", () => {
+  assert.equal(repScore({ failed: ["form"], score: 37 }), 37);
+  assert.equal(repScore({ failed: [], score: 0 }), 0);
+  assert.equal(sessionScore([{ failed: [], score: 90 }, r(["depth"])]), 82.5);
+});
 
 const S = () => ([
   { sessionId: "a", avgScore: 90, repsCompleted: 10 },

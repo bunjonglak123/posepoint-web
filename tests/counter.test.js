@@ -45,6 +45,13 @@ test("lower body invisible -> back/knee null", () => {
   assert.equal(done[0].backMin, null);
   assert.equal(done[0].kneeMin, null);
 });
+test("แนบเฟรมของครั้งนั้นไว้ใน m.frames (ให้โมเดล ML ใช้)", () => {
+  const seq = [TOP(), BOT(), TOP(), BOT(), TOP()];
+  const { done } = drive(seq);
+  assert.equal(done.length, 2);
+  assert.deepEqual(done[0].frames, seq.slice(0, 3));   // ครั้งแรก: ตั้งแต่เริ่มถึงเฟรมที่ขึ้นสุด
+  assert.deepEqual(done[1].frames, seq.slice(3, 5));   // ครั้งถัดไปเริ่มหลังครั้งก่อนจบ
+});
 test("captures min/max", () => {
   const { done } = drive([TOP(), BOT({ knee: 140 }), TOP()]);
   assert.equal(done[0].elbowMin, 80);
