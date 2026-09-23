@@ -102,6 +102,7 @@ const VOICE_KEY = { elbow: "voiceElbow", depth: "voiceDepth", back: "voiceBack",
 // ---------- โมเดล ML ตัดสินท่า (Random Forest, รันในเบราว์เซอร์) ----------
 let mlModel = null, mlError = false;
 let mlOn = localStorage.getItem("pp_ml") !== "0";
+let collectFrames = false;                   // เปิดเฉพาะตอนสกัดชุดข้อมูล (analyzeVideoUrl) — ปกติไม่เก็บเฟรมดิบ
 loadModel(APP.MODEL_URL)
   .then(m => { mlModel = m; })
   .catch(() => { mlError = true; })          // โหลดไม่ได้ -> ใช้เกณฑ์เชิงกฎแทน
@@ -177,7 +178,9 @@ function processFrame(tsMs, source = video) {
   updateBodyHint(f.lowerVis);
   const m = counter.update(f);
   if (m) {
+    const seq = collectFrames ? m.frames : null;      // เก็บก่อน judgeRep ลบเฟรมดิบทิ้ง
     const res = judgeRep(m, CONFIG, mlModel, mlOn);
+    if (seq) res.seq = seq;                           // ใช้สร้างชุดข้อมูลลำดับเวลาจาก pipeline ของเว็บ
     results.push(res);
     renderRep(res);
   }
@@ -417,7 +420,8 @@ window.posepoint = {
     return { reps: counter.count, results: results.map(x => ({ v: x.verdict, f: x.failed, s: x.skipped, j: x.judge, score: repScore(x), p: x.pIncorrect })) };
   },
   // วิเคราะห์ทีละเฟรมด้วยการ seek (ไม่พึ่ง requestAnimationFrame) — ใช้วัดผลฝั่งเว็บ/ตรวจในเบราว์เซอร์ที่ไม่ render
-  async analyzeVideoUrl(url, fps = APP.ANALYZE_FPS) {
+  async analyzeVideoUrl(url, fps = APP.ANALYZE_FPS, opts = {}) {
+    collectFrames = !!opts.frames;       // opts.frames = true -> คืนลำดับเฟรมรายครั้งด้วย (สำหรับเทรนโมเดลลำดับเวลา)
     await ensureReady();
     stopStream(); video.src = url; video.muted = true;
     await new Promise((res, rej) => { video.onloadeddata = res; video.onerror = () => rej(new Error("โหลดวิดีโอไม่ได้")); });
@@ -432,7 +436,9 @@ window.posepoint = {
       fctx.drawImage(video, 0, 0, frame.width, frame.height);
       processFrame(lastTs + 1000 / fps, frame);          // เดินเวลาตามเฟรมของวิดีโอ (processFrame กันย้อนเวลาให้)
     }
-    return { reps: counter.count, results: results.map(x => ({ v: x.verdict, f: x.failed, s: x.skipped, j: x.judge, score: repScore(x), p: x.pIncorrect, rule: x.ruleFailed, feat: x.features })) };
+    const out = { reps: counter.count, results: results.map(x => ({ v: x.verdict, f: x.failed, s: x.skipped, j: x.judge, score: repScore(x), p: x.pIncorrect, rule: x.ruleFailed, feat: x.features, seq: x.seq })) };
+    collectFrames = false;
+    return out;
   },
   state: () => ({ ready, reps: counter ? counter.count : 0 })
 };
