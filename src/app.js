@@ -193,11 +193,11 @@ function renderRep(res) {
   // แจ้งบนจอกล้อง + เสียงพูด — คนถือถ่าย/คนวิดเห็นและได้ยินโดยไม่ต้องเลื่อนจอ
   if (ok) {
     showFormAlert(`✓ ${counter.count}`, true);
-    speak(String(counter.count));                    // นับเลขตามภาษา TTS
+    if (APP.VOICE.countReps) speak(String(counter.count));
   } else {
     const key = res.failed[0];                       // แจ้งจุดผิดแรก (สำคัญสุด)
     showFormAlert(t(ALERT_KEY[key] || "alertDepth"), false);
-    speak(t(VOICE_KEY[key] || "voiceDepth"));
+    if (!APP.VOICE.mute.includes(key)) speak(t(VOICE_KEY[key] || "voiceDepth"));
   }
   updateStats();
   lastEl.textContent = `#${res.index} ${res.verdict}` + (ok ? "" : ": " + res.failed.join(", "));

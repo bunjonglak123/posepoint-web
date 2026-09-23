@@ -26,5 +26,9 @@ export const APP = {
     repOk: { freq: 760, dur: 0.09 }, repBad: { freq: 320, dur: 0.09 },
     countdown: { freq: 440, dur: 0.1 }, go: { freq: 880, dur: 0.18 }
   },
-  DEFAULT_TARGET: { reps: 20, seconds: 30 }
+  DEFAULT_TARGET: { reps: 20, seconds: 30 },
+  VOICE: {                    // เสียงพูด (TTS) — เสียงสังเคราะห์ฟังไม่เป็นธรรมชาติ จึงเลือกพูดเฉพาะที่จำเป็น
+    countReps: false,         // ไม่พูดเลขนับ (มีเสียงบี๊บ + เลขบนจออยู่แล้ว)
+    mute: ["back"]            // จุดผิดที่ไม่ต้องพูด — ยังขึ้นแบนเนอร์ + เสียงบี๊บตามปกติ
+  }
 };
