@@ -63,7 +63,8 @@ const STR = {
       "#btnClearHistory": "ล้างประวัติทั้งหมด (ในเครื่อง)",
       "#howtoTitle": "วิธีใช้งาน",
       "#guide h2": "วางกล้องแบบนี้", "#btnGuideClose": "เข้าใจแล้ว",
-      "#guideNote": "เห็นเต็มตัว = ตรวจครบ 4 เกณฑ์ (ศอก/ลึก/หลัง/เข่า)"
+      "#guideNote": "เห็นเต็มตัว = ตรวจครบ 4 เกณฑ์ (ศอก/ลึก/หลัง/เข่า)",
+      "a.linkAccuracy": "ดูความแม่นยำและผลทดสอบของโมเดล →"
     },
     _html: {
       "#noteClip": 'คลิปท่อนบน (ไม่เห็นสะโพก/เข่า/ข้อเท้า) จะวัดได้แค่เกณฑ์ <b>ศอก</b> + <b>ความลึก</b> ส่วนหลัง/เข่าจะถูก skip. อยากครบ 4 เกณฑ์ให้ถ่าย <b>เต็มตัวมุมข้าง</b>.',
@@ -130,7 +131,8 @@ const STR = {
       "#btnClearHistory": "Clear all history (local)",
       "#howtoTitle": "How to Use",
       "#guide h2": "Place Camera Like This", "#btnGuideClose": "Got it",
-      "#guideNote": "Full body visible = all 4 criteria checked (elbow/depth/back/knee)"
+      "#guideNote": "Full body visible = all 4 criteria checked (elbow/depth/back/knee)",
+      "a.linkAccuracy": "See the model's accuracy and test results →"
     },
     _html: {
       "#noteClip": 'Upper-body-only clips (no hip/knee/ankle) can only check <b>elbow</b> + <b>depth</b>; back/knee get skipped. For all 4 criteria, film <b>full body from the side</b>.',
