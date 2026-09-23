@@ -37,7 +37,14 @@
   }
   header .logo{width:40px;height:40px;flex:0 0 auto;}
   header h1{margin:0; font-size:26px; font-weight:700; text-transform:uppercase; line-height:1;}
-  header .sub{color:var(--muted-fg); font-size:13px;}
+  header .sub{color:var(--muted-fg); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  header > div{min-width:0;}              /* ให้ข้อความหดได้ ปุ่มท้าย header จะไม่ล้นจอแคบ */
+  header .iconbtn{flex:0 0 auto;}
+  @media(max-width:400px){
+    header{gap:8px; padding:14px 12px;}
+    header h1{font-size:22px;}
+    header .sub{font-size:11.5px;}
+  }
   main{max-width:680px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:var(--gap);}
   /* stage */
   .stage{position:relative; background:#000; border-radius:var(--r); overflow:hidden; aspect-ratio:3/4; border:1px solid var(--border);}
@@ -143,6 +150,19 @@
   .langbtn{margin-left:auto; margin-right:0; font-weight:700; font-size:13px; letter-spacing:.5px;}
   .langbtn + .iconbtn{margin-left:8px;}
   .iconbtn:focus-visible{outline:3px solid var(--ring); outline-offset:2px;}
+  a.iconbtn{text-decoration:none;}
+  /* ลิงก์ที่หน้าตาเป็นปุ่ม (ใช้กับหน้าความแม่นยำของโมเดล) */
+  a.btnlink{
+    font-family:"Barlow",sans-serif; font-size:17px; font-weight:600; min-height:52px; padding:0 18px;
+    border-radius:14px; border:1px solid var(--border); background:var(--surface); color:var(--fg);
+    display:flex; align-items:center; justify-content:center; gap:10px; text-decoration:none;
+    text-align:center; line-height:1.35; overflow-wrap:anywhere;   /* ไทยไม่มีช่องว่าง — ให้ตัดบรรทัดได้บนจอแคบ */
+    transition:background var(--t), transform var(--t);
+  }
+  a.btnlink svg{width:22px; height:22px; flex:0 0 auto; color:var(--secondary);}
+  a.btnlink:hover{background:#22283a;}
+  a.btnlink:active{transform:scale(.97);}
+  a.btnlink:focus-visible{outline:3px solid var(--ring); outline-offset:2px;}
   .guide{position:fixed; inset:0; z-index:100; background:rgba(8,11,18,.97); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; overflow:auto;}
   .guide .gcard{max-width:430px; width:100%;}
   .guide h2{font-size:22px; text-transform:uppercase; letter-spacing:.5px; margin:0 0 6px;}
@@ -171,7 +191,7 @@
   button svg,.file svg{width:22px;height:22px;flex:0 0 auto;}
   .primary{background:var(--primary); color:var(--on-primary); width:100%; font-size:19px; box-shadow:0 6px 18px rgba(217,119,6,.35);}
   .row{display:flex; gap:10px;}
-  .row .ghost{flex:1;}
+  .row .ghost{flex:1; min-width:0;}       /* min-width:0 — ปุ่มแถวนี้ต้องหดได้บนจอแคบ */
   .ghost{background:var(--surface); color:var(--fg); border-color:var(--border);}
   .ghost.file{flex:1;}
   button:active,.file:active{transform:scale(.97);}
@@ -209,6 +229,9 @@
     <div class="sub">นับ + ตรวจฟอร์มวิดพื้น · on-device</div>
   </div>
   <button id="btnLang" class="iconbtn langbtn" aria-label="เปลี่ยนภาษา / Switch language" title="TH/EN">EN</button>
+  <a href="model.html" class="iconbtn" id="btnAccuracy" aria-label="ความแม่นยำของโมเดล" title="ความแม่นยำของโมเดล">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6" rx="1"/><rect x="12" y="8" width="3" height="10" rx="1"/><rect x="17" y="4" width="3" height="14" rx="1"/></svg>
+  </a>
   <button id="btnGuide" class="iconbtn" aria-label="วิธีวางกล้อง/วิธีใช้" title="วิธีวางกล้อง">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
   </button>
@@ -308,7 +331,10 @@
   <section class="card">
     <p class="note" id="noteClip">คลิปท่อนบน (ไม่เห็นสะโพก/เข่า/ข้อเท้า) จะวัดได้แค่เกณฑ์ <b>ศอก</b> + <b>ความลึก</b> ส่วนหลัง/เข่าจะถูก skip. อยากครบ 4 เกณฑ์ให้ถ่าย <b>เต็มตัวมุมข้าง</b>.</p>
     <p class="note" id="notePrivacy" style="margin-top:10px;">ประมวลผลในเครื่อง ไม่อัปโหลดวิดีโอ · <a href="privacy.html" style="color:var(--accent);">นโยบายความเป็นส่วนตัว</a></p>
-    <p class="note" style="margin-top:10px;"><a class="linkAccuracy" href="model.html" style="color:var(--accent);">ดูความแม่นยำและผลทดสอบของโมเดล →</a></p>
+    <a class="btnlink linkAccuracy" href="model.html" style="margin-top:12px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6" rx="1"/><rect x="12" y="8" width="3" height="10" rx="1"/><rect x="17" y="4" width="3" height="14" rx="1"/></svg>
+      ดูความแม่นยำของโมเดล →
+    </a>
   </section>
   </section><!-- /view-workout -->
 
