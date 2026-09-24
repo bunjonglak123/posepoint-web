@@ -47,7 +47,7 @@
   th:first-child,td:first-child{text-align:left;}
   thead th{font-size:12px; color:var(--muted-fg); text-transform:uppercase; letter-spacing:.4px; font-weight:600;}
   tbody tr:last-child td{border-bottom:0;}
-  td small{display:block; font-size:11px; color:var(--muted-fg); font-weight:400;}
+  th small,td small{display:block; font-size:11px; color:var(--muted-fg); font-weight:400; text-transform:none; letter-spacing:0;}
   td.best{color:var(--success);}
   tr.deployed td{background:rgba(217,119,6,.10); font-weight:600;}
   tr.deployed td:first-child{box-shadow:inset 3px 0 0 var(--primary);}
@@ -78,8 +78,8 @@
 <main>
   <section class="card">
     <h2 data-th="ระบบนี้แม่นแค่ไหน" data-en="How accurate is it?"></h2>
-    <p class="lead" data-th="ทุกตัวเลขในหน้านี้อ่านจากไฟล์โมเดลที่แอปใช้งานจริง วัดโดย<b>ทดสอบกับคนที่โมเดลไม่เคยเห็น</b> — ไม่ได้พิมพ์ตัวเลขใส่เอง"
-       data-en="Every number here is read from the model file the app actually runs, measured on <b>people the model never saw</b> — nothing is typed in by hand."></p>
+    <p class="lead" data-th="ทุกตัวเลขในหน้านี้อ่านจากไฟล์โมเดลที่แอปใช้งานจริง — ไม่ได้พิมพ์ตัวเลขใส่เอง ค่าที่ควรใช้อ้างอิงคือ <b>F1 กับคนใหม่</b> ซึ่งวัดกับคนที่โมเดลไม่เคยเห็นจริง ๆ"
+       data-en="Every number here is read from the model file the app actually runs — nothing is typed in by hand. The figure to quote is <b>F1 on new people</b>, measured on people the model truly never saw."></p>
     <div class="kpis" id="kpis"></div>
     <p class="err" id="loadErr" hidden></p>
   </section>
@@ -97,8 +97,8 @@
 
   <section class="card">
     <h2 data-th="เทียบทุกวิธีที่ลอง" data-en="Every method we tried"></h2>
-    <p class="lead" data-th="แบ่งชุดทดสอบตามคน (คนเดียวกันไม่อยู่ทั้งชุดเทรนและชุดทดสอบ) ค่าเป็นค่าเฉลี่ย ± ส่วนเบี่ยงเบนจากการสุ่มแบ่งหลายรอบ แถวที่ไฮไลต์คือตัวที่แอปใช้"
-       data-en="Split by person, so nobody appears in both training and testing. Values are mean ± SD over repeated shuffles. The highlighted row is what the app runs."></p>
+    <p class="lead" data-th="ข้อมูลทั้งหมด: ชุดที่ระบุตัวคนได้แบ่งชุดทดสอบตามคน ส่วนชุดที่ไม่ระบุตัวคนแบ่งได้แค่ตามคลิป ค่าเป็นค่าเฉลี่ย ± ส่วนเบี่ยงเบนจากการสุ่มแบ่งหลายรอบ แถวที่ไฮไลต์คือตัวที่แอปใช้"
+       data-en="All data: the set with known identities is split by person; the set without them can only be split by clip. Values are mean ± SD over repeated shuffles. The highlighted row is what the app runs."></p>
     <div class="tablewrap">
       <table>
         <thead><tr>
@@ -112,17 +112,29 @@
        data-en="Precision = of reps flagged wrong, how many really were · Recall = of all wrong reps, how many were caught · F1 balances both · green = best in column"></p>
   </section>
 
+  <section class="card" id="bySourceCard" hidden>
+    <h2 data-th="แยกตามชุดข้อมูล" data-en="By dataset"></h2>
+    <p class="lead" data-th="ตัวเลขรวมด้านบนผสมสองวิธีแบ่ง จึงแยกให้เห็นชัด: คอลัมน์ &quot;คนใหม่&quot; คือค่าที่เชื่อถือได้ที่สุด ส่วนคอลัมน์ &quot;คลิปใหม่&quot; อาจสูงเกินจริงเพราะคนเดียวกันอาจอยู่ทั้งชุดฝึกและชุดทดสอบ"
+       data-en="The combined numbers mix two split methods, so here they are apart: the &quot;new people&quot; column is the most trustworthy; the &quot;new clips&quot; column may be optimistic because one person can appear on both sides."></p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr id="bySourceHead"></tr></thead>
+        <tbody id="bySource"></tbody>
+      </table>
+    </div>
+  </section>
+
   <section class="card">
     <h2 data-th="กราฟผลการทดสอบ" data-en="Evaluation charts"></h2>
     <figure>
       <img src="charts/chart_web_models.png" alt="เทียบ Precision Recall F1 Accuracy ของทุกวิธี แบ่งชุดทดสอบตามคน">
-      <figcaption data-th="<b>ข้อมูลทั้งหมด</b> รวมสามโมเดลได้ F1 และ Recall สูงสุด และชนะ Random Forest เดี่ยวครบทุกรอบที่สุ่มแบ่ง"
-                  data-en="<b>All data.</b> The three-model ensemble has the best F1 and recall, and beat the single Random Forest on every shuffle."></figcaption>
+      <figcaption data-th="<b>ข้อมูลทั้งหมด</b> รวมสามโมเดลได้ F1 และ Recall สูงสุด"
+                  data-en="<b>All data.</b> The three-model ensemble has the best F1 and recall."></figcaption>
     </figure>
     <figure>
       <img src="charts/chart_web_models_mendeley.png" alt="ผลเฉพาะชุดข้อมูลที่ถ่ายในฟิตเนสจริง">
-      <figcaption data-th="<b>เฉพาะชุดที่ถ่ายในฟิตเนสจริง</b> (หลายคน แสงและฉากหลังต่างกัน) เป็นกรณีที่ยากที่สุด ตัวเลขจึงต่ำกว่า — แสดงไว้ให้เห็นข้อจำกัดตรง ๆ"
-                  data-en="<b>Real-gym recordings only</b> (many people, varied lighting and backgrounds) — the hardest case, so the numbers are lower. Shown to be upfront about the limits."></figcaption>
+      <figcaption data-th="<b>ฝึกและทดสอบด้วยชุดที่ถ่ายในฟิตเนสจริงอย่างเดียว</b> กรณีนี้ Random Forest ดีที่สุด ส่วน LSTM/CNN ได้ต่ำเพราะข้อมูลชุดเดียวน้อยเกินไปสำหรับโมเดลเชิงลึก — พอฝึกด้วยข้อมูลรวม โมเดลเชิงลึกทำได้ดีขึ้นกับคนกลุ่มเดียวกันนี้ (ตาราง &quot;แยกตามชุดข้อมูล&quot;)"
+                  data-en="<b>Trained and tested on the real-gym set alone.</b> Here Random Forest wins; LSTM/CNN lag because one set is too little data for deep models — trained on all data they do better on these same people (see &quot;By dataset&quot;)."></figcaption>
     </figure>
     <figure>
       <img src="charts/chart_threshold.png" alt="ผลของค่าขีดแบ่งมุมเข่าต่อความแม่นยำ">
@@ -143,6 +155,8 @@
     <ul>
       <li data-th="<b>ตัวเลขลดลงเมื่อวัดให้ถูกวิธี</b> รุ่นก่อนเคยรายงาน F1 0.77 แต่วัดโดยแบ่งตามคลิปในชุดที่ถ่ายจากฉากซ้ำ ๆ ข้อมูลจึงรั่ว พอเปลี่ยนเป็นทดสอบกับคนที่ไม่เคยเห็น ตัวเลขจริงคือที่แสดงในหน้านี้"
           data-en="<b>The numbers dropped once measured properly.</b> An earlier version reported F1 0.77, but it split by clip on footage from repeated scenes, so data leaked. Tested on unseen people, the real numbers are the ones on this page."></li>
+      <li data-th="<b>ชุด Kaggle ไม่ระบุตัวคน</b> จึงแบ่งชุดทดสอบได้แค่ตามคลิป ตัวเลขของชุดนี้อาจยังสูงเกินจริง — ใช้คอลัมน์ &quot;คนใหม่&quot; เป็นหลักในการอ้างอิง"
+          data-en="<b>The Kaggle set has no person IDs,</b> so it can only be split by clip and its numbers may still be optimistic — quote the &quot;new people&quot; column."></li>
       <li data-th="<b>เฉลยเป็นระดับคลิป</b> ทุกครั้งในคลิปได้เฉลยเดียวกัน ครั้งที่ทำถูกในคลิปที่ติดป้ายว่าผิดจึงถูกนับเป็นผิดไปด้วย — นี่คือเพดานหลักของความแม่นยำ ไม่ใช่ตัวโมเดล"
           data-en="<b>Labels are per clip.</b> Every rep inherits its clip's label, so a good rep inside a clip labelled wrong counts as wrong — this, not the model, is the main accuracy ceiling."></li>
       <li data-th="<b>ต้องถ่ายมุมข้างเต็มตัว</b> ถ้ากล้องไม่เห็นสะโพก–เข่า–ข้อเท้า ระบบจะถอยไปใช้เกณฑ์เชิงกฎแทนโมเดล"
@@ -208,9 +222,14 @@
     const dep = ev && ev.metrics[DEPLOYED];
     const box = document.getElementById("kpis");
     box.textContent = "";
+    // ชุดที่แบ่งตามคนจริง (ถ้ามี) = ตัวเลขที่ควรอ้างอิงกับผู้ใช้ใหม่
+    const bySrc = ev && ev.metrics_by_source, grp = (ev && ev.grouping_by_source) || {};
+    const personSrc = bySrc && Object.keys(bySrc).find(s => grp[s] === "subject");
+    const personEns = personSrc && bySrc[personSrc][DEPLOYED];
     const kpis = [
-      dep && [two(dep.f1[0]), L("F1 (โมเดลรวม)", "F1 (ensemble)")],
-      dep && [pct(dep.accuracy[0]), L("ความแม่นยำรวม", "Accuracy")],
+      personEns && [two(personEns.f1[0]), L("F1 กับคนใหม่", "F1 on new people")],
+      dep && [two(dep.f1[0]), L("F1 ข้อมูลทั้งหมด", "F1 all data")],
+      dep && [pct(dep.accuracy[0]), L("ความแม่นยำ (ทั้งหมด)", "Accuracy (all)")],
       [String(tr.reps), L("ครั้งที่ใช้ทดสอบ", "Reps evaluated")],
       [String(tr.subjects), L("คนที่ระบุตัวได้", "Identified people")],
       [String(m.members.length), L("โมเดลช่วยกันตัดสิน", "Models voting")],
@@ -238,6 +257,36 @@
         }
         tb.appendChild(r);
       }
+    }
+
+    // ตารางแยกตามชุดข้อมูล: F1 ของแต่ละวิธี ชุดแบ่งตามคนมาก่อน
+    const srcCard = document.getElementById("bySourceCard");
+    if (bySrc) {
+      const srcs = Object.keys(bySrc).sort((a, b) => (grp[a] === "subject" ? -1 : 1) - (grp[b] === "subject" ? -1 : 1));
+      const head = document.getElementById("bySourceHead");
+      head.textContent = "";
+      head.appendChild(el("th", "", L("วิธี (F1)", "Method (F1)")));
+      for (const s of srcs) {
+        const th = el("th", "", grp[s] === "subject" ? L("คนใหม่", "New people") : L("คลิปใหม่", "New clips"));
+        th.appendChild(el("small", "", s.replace("_pushup", "") + " · " + (ev.per_source?.[s] ?? "") + L(" ครั้ง", " reps")));
+        head.appendChild(th);
+      }
+      const body = document.getElementById("bySource");
+      body.textContent = "";
+      const rows = ROWS.filter(([k]) => ["rule", "rf", "lstm", "cnn", DEPLOYED].includes(k) && bySrc[srcs[0]][k]);
+      const best = Object.fromEntries(srcs.map(s => [s, Math.max(...rows.map(([k]) => bySrc[s][k].f1[0]))]));
+      for (const [k, th, en] of rows) {
+        const r = el("tr", k === DEPLOYED ? "deployed" : "");
+        r.appendChild(el("td", "", L(th, en)));
+        for (const s of srcs) {
+          const [v, sd] = bySrc[s][k].f1;
+          const td = el("td", v === best[s] ? "best" : "", two(v));
+          if (sd > 0) td.appendChild(el("small", "", "±" + two(sd)));
+          r.appendChild(td);
+        }
+        body.appendChild(r);
+      }
+      srcCard.hidden = false;
     }
 
     const info = [
