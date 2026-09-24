@@ -61,6 +61,10 @@
   li b{color:#fff; font-weight:600;}
   dl{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin:0; font-size:14.5px;}
   dt{color:var(--muted-fg);} dd{margin:0; word-break:break-word;}
+  table.layers th,table.layers td{text-align:left;}
+  table.layers td:first-child{white-space:nowrap;}
+  ul.rules{margin:14px 0 0;}
+  ul.rules code{font-size:12.5px; background:var(--bg); padding:1px 5px; border-radius:5px; color:var(--fg);}
   .cite{font-size:13px; color:var(--muted-fg); line-height:1.6; margin:0 0 10px; overflow-wrap:anywhere;}
   .cite:last-child{margin-bottom:0;}
   .err{color:#ff8787; font-size:14px;}
@@ -82,6 +86,41 @@
        data-en="Every number here is read from the model file the app actually runs — nothing is typed in by hand. The figure to quote is <b>F1 on new people</b>, measured on people the model truly never saw."></p>
     <div class="kpis" id="kpis"></div>
     <p class="err" id="loadErr" hidden></p>
+  </section>
+
+  <section class="card">
+    <h2 data-th="แอปใช้โมเดลอะไรอยู่" data-en="What the app runs"></h2>
+    <p class="lead" data-th="ทำงานสองชั้น — MediaPipe แค่หาจุดร่างกาย ส่วนการตัดสินท่าเป็นโมเดลที่โครงงานฝึกเอง"
+       data-en="Two layers — MediaPipe only finds the body points; judging the form is done by models this project trained itself."></p>
+    <div class="tablewrap">
+      <table class="layers">
+        <thead><tr>
+          <th data-th="ชั้น" data-en="Layer"></th>
+          <th data-th="โมเดล" data-en="Model"></th>
+          <th data-th="หน้าที่" data-en="Job"></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td data-th="1. เตรียมข้อมูล<small>สำเร็จรูปของ Google</small>" data-en="1. Pre-processing<small>off-the-shelf, Google</small>"></td>
+            <td>MediaPipe Pose Landmarker <small>lite</small></td>
+            <td data-th="หาจุดร่างกาย 33 จุดจากภาพกล้อง" data-en="Finds 33 body points in each camera frame"></td>
+          </tr>
+          <tr class="deployed">
+            <td data-th="2. ตัดสินท่า<small>ML ของโครงงาน · ฝึกเอง</small>" data-en="2. Judging<small>this project's ML · self-trained</small>"></td>
+            <td>RF + LSTM + 1D-CNN <small id="layerVersion"></small></td>
+            <td data-th="ตัดสินถูก/ผิด และให้คะแนนรายครั้ง" data-en="Decides right/wrong and scores every rep"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ul class="rules">
+      <li data-th="<b>วิธีตัดสิน</b> เฉลี่ยความน่าจะเป็นที่ท่าผิดของทั้งสามโมเดล = p · ท่าผิดเมื่อ p ≥ <span class='thr'></span> · คะแนน = (1 − p) × 100"
+          data-en="<b>Decision:</b> average the three models' probability of a bad rep = p · bad when p ≥ <span class='thr'></span> · score = (1 − p) × 100"></li>
+      <li data-th="<b>กรณีสำรอง</b> ถ้ากล้องมองไม่เห็นขา หรือโหลดโมเดลไม่ได้ แอปใช้เกณฑ์เชิงกฎ 4 ข้อแทน"
+          data-en="<b>Fallback:</b> if the camera can't see the legs or the model fails to load, the app uses the 4 rule-based checks instead"></li>
+      <li data-th="<b>ดูในแอป</b> หน้าตั้งค่าบอกรุ่นโมเดล · ผลแต่ละครั้งโชว์ค่าจากทุกโมเดล เช่น <code>[RF .88 · LSTM .99 · CNN 1.00]</code>"
+          data-en="<b>In the app:</b> Settings shows the model version · every rep lists each model's value, e.g. <code>[RF .88 · LSTM .99 · CNN 1.00]</code>"></li>
+    </ul>
   </section>
 
   <section class="card">
@@ -219,6 +258,9 @@
 
   function render(m) {
     const ev = m.eval, tr = m.trained_on;
+    // รุ่นและจุดตัดในการ์ด "แอปใช้โมเดลอะไรอยู่" มาจากไฟล์โมเดลจริง
+    document.getElementById("layerVersion").textContent = L("รุ่น ", "v") + m.version;
+    document.querySelectorAll(".thr").forEach(e => { e.textContent = String(m.threshold); });
     const dep = ev && ev.metrics[DEPLOYED];
     const box = document.getElementById("kpis");
     box.textContent = "";
