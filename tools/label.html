@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PosePoint — ติดป้ายรายครั้ง</title>
+<style>
+  :root{--bg:#0F172A;--surface:#161b29;--fg:#fff;--mute:#CBD5E1;--border:rgba(255,255,255,.1);--good:#22C55E;--bad:#DC2626;--amber:#F59E0B}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 Tahoma,system-ui,sans-serif}
+  main{max-width:980px;margin:0 auto;padding:14px}
+  header{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  h1{font-size:19px;margin:0} .prog{flex:1;min-width:200px;height:10px;background:var(--surface);border-radius:99px;overflow:hidden}
+  .prog i{display:block;height:100%;background:var(--amber)} .count{color:var(--mute);font-variant-numeric:tabular-nums}
+  .stage{position:relative;background:#000;border-radius:12px;overflow:hidden}
+  video{width:100%;max-height:62vh;display:block;object-fit:contain;background:#000}
+  .tag{position:absolute;left:10px;top:10px;background:rgba(15,23,42,.75);padding:3px 10px;border-radius:8px;font-size:13px}
+  .bar{position:absolute;left:0;right:0;bottom:0;height:5px;background:rgba(255,255,255,.12)} .bar i{display:block;height:100%;background:var(--amber)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  button{font:inherit;font-size:16px;font-weight:bold;border:1px solid var(--border);border-radius:12px;padding:14px 18px;cursor:pointer;color:var(--fg);background:var(--surface)}
+  button.good{background:#14532d;border-color:var(--good)} button.bad{background:#7f1d1d;border-color:var(--bad)}
+  button:focus-visible{outline:3px solid var(--amber)} button:disabled{opacity:.4;cursor:default}
+  .big{flex:1;min-width:150px}
+  .errs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;color:var(--mute);font-size:14px}
+  .errs label{background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:6px 12px;cursor:pointer}
+  .errs input{margin-right:5px}
+  .help{color:var(--mute);font-size:13px;margin-top:12px} kbd{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:0 6px}
+  .setup{background:var(--surface);border-radius:12px;padding:16px;margin-bottom:12px}
+  .setup input{font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--fg)}
+  .done{background:var(--surface);border-radius:12px;padding:20px;text-align:center}
+  .speed{color:var(--mute);font-size:13px}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>ติดป้ายรายครั้ง</h1>
+    <div class="prog"><i id="progBar" style="width:0"></i></div>
+    <span class="count" id="count">–</span>
+  </header>
+
+  <section class="setup" id="setup">
+    <p style="margin-top:0">ดูทีละครั้ง แล้วตัดสินจาก<b>ท่าในครั้งนั้นเท่านั้น</b> — ไม่ต้องสนใจครั้งอื่นในคลิป
+      ระบบไม่บอกป้ายเดิมของคลิปหรือผลของโมเดล เพื่อไม่ให้ความเห็นเอนตาม</p>
+    <label>ชื่อผู้ติดป้าย: <input id="who" placeholder="เช่น ภานุพงศ์" autocomplete="name"></label>
+    <div class="row">
+      <button id="startCount" class="big">ขั้นที่ 1 · นับจำนวนครั้งทั้งคลิป <span class="speed" id="countInfo"></span></button>
+      <button id="start" class="big good">ขั้นที่ 2 · ติดป้ายรายครั้ง <span class="speed" id="labelInfo"></span></button>
+    </div>
+    <p class="speed" id="loadInfo"></p>
+  </section>
+
+  <section id="countWork" hidden>
+    <p style="margin-top:0">ดูทั้งคลิป แล้วนับว่า<b>วิดพื้นครบครั้ง (ลงแล้วขึ้น) กี่ครั้ง</b> — นับเฉพาะคนที่วิดพื้น ไม่นับคนที่ยืนอยู่ด้านหลัง
+      ครั้งที่ลงไม่สุดแต่ตั้งใจวิดก็นับ · กดเล่นซ้ำ/ช้าลงได้ตามสบาย</p>
+    <div class="stage"><video id="cv" controls muted playsinline preload="auto"></video><span class="tag" id="ctag"></span></div>
+    <div class="row" style="align-items:center">
+      <label style="font-size:18px">จำนวนครั้ง: <input id="cn" type="number" min="0" max="200" inputmode="numeric"
+        style="width:110px;font-size:22px;padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--fg)"></label>
+      <button class="good" id="cSave">บันทึกแล้วไปต่อ <kbd>Enter</kbd></button>
+      <button id="cBack">↶ ย้อนกลับ</button>
+      <button id="cSlow">ความเร็ว <span id="crate">1×</span></button>
+      <button id="cHome">กลับหน้าแรก</button>
+    </div>
+  </section>
+
+  <section id="work" hidden>
+    <div class="stage">
+      <video id="v" muted playsinline preload="auto"></video>
+      <span class="tag" id="tag"></span>
+      <div class="bar"><i id="posBar" style="width:0"></i></div>
+    </div>
+    <div class="row">
+      <button class="big good" id="bGood">✓ ถูก <kbd>1</kbd></button>
+      <button class="big bad" id="bBad">✗ ผิด <kbd>2</kbd></button>
+      <button id="bUnsure">? ไม่แน่ใจ <kbd>3</kbd></button>
+      <button id="bNotRep">ไม่ใช่ครั้งวิดพื้น <kbd>4</kbd></button>
+    </div>
+    <div class="errs" id="errs">
+      ถ้าผิด ผิดตรงไหน (ไม่บังคับ):
+      <label><input type="checkbox" value="hip_sag">สะโพกตก/หลังแอ่น</label>
+      <label><input type="checkbox" value="hip_pike">ก้นโด่ง</label>
+      <label><input type="checkbox" value="shallow">ลงไม่สุด</label>
+      <label><input type="checkbox" value="knee">เข่างอ/วางเข่า</label>
+      <label><input type="checkbox" value="other">อื่น ๆ</label>
+    </div>
+    <div class="row">
+      <button id="bBack">↶ ย้อนกลับ <kbd>Backspace</kbd></button>
+      <button id="bReplay">⟲ เล่นซ้ำ <kbd>R</kbd></button>
+      <button id="bSlow">ความเร็ว <span id="rate">1×</span> <kbd>S</kbd></button>
+    </div>
+    <p class="help">วิดีโอเล่นเฉพาะช่วงครั้งนี้วนซ้ำ (แถบส้มด้านล่างคือช่วงที่กำลังตัดสิน) · บันทึกอัตโนมัติทุกครั้งที่กด ปิดแล้วกลับมาทำต่อได้
+      · "ไม่ใช่ครั้งวิดพื้น" ใช้เมื่อระบบนับผิด เช่น ไม่ได้วิดจริง หรือจับผิดคน</p>
+  </section>
+
+  <section class="done" id="done" hidden>
+    <h2>ติดป้ายครบแล้ว 🎉</h2>
+    <p id="doneInfo"></p>
+  </section>
+</main>
+
+<script>
+  // ข้อมูลรายครั้งมาจาก label_server.mjs: {items:[{id, url, t0, t1, rep}], labels:{id:{...}}}
+  const $ = id => document.getElementById(id);
+  const v = $("v");
+  let items = [], labels = {}, order = [], pos = 0, who = "", rate = 1;
+  const PAD = 0.35;                                   // เผื่อก่อน/หลังช่วงครั้งนั้นเล็กน้อย (วินาที)
+
+  let cItems = [], counts = {}, cpos = 0, crate = 1;
+  async function load() {
+    const r = await fetch("api/items"); const d = await r.json();
+    items = d.items; labels = d.labels || {};
+    const c = await (await fetch("api/count-items")).json();
+    cItems = c.items; counts = c.counts || {};
+    const doneL = items.filter(i => labels[i.id]).length, doneC = cItems.filter(i => counts[i.id]).length;
+    $("labelInfo").textContent = `(${doneL}/${items.length})`;
+    $("countInfo").textContent = `(${doneC}/${cItems.length})`;
+    $("loadInfo").textContent = `ติดป้าย ${items.length} รายการ รวมรายการทวนซ้ำ ${items.filter(i => i.repeat).length} รายการไว้วัดความสม่ำเสมอ · แนะนำทำขั้นที่ 1 ก่อน`;
+    try { $("who").value = localStorage.getItem("pp_labeler") || ""; } catch {}
+  }
+
+  function askWho() {
+    who = $("who").value.trim();
+    if (!who) { $("who").focus(); return false; }
+    try { localStorage.setItem("pp_labeler", who); } catch {}
+    return true;
+  }
+
+  // ---------- ขั้นที่ 1: นับจำนวนครั้งทั้งคลิป ----------
+  function startCount() {
+    if (!askWho()) return;
+    cpos = cItems.findIndex(i => !counts[i.id]); if (cpos < 0) cpos = 0;
+    $("setup").hidden = true; $("countWork").hidden = false; showCount();
+  }
+  function showCount() {
+    $("count").textContent = `${cpos + 1} / ${cItems.length}`;
+    $("progBar").style.width = (100 * cItems.filter(i => counts[i.id]).length / cItems.length) + "%";
+    const it = cItems[cpos];
+    $("ctag").textContent = `คลิป ${cpos + 1}`;
+    $("cv").src = it.url; $("cv").playbackRate = crate; $("cv").play().catch(() => {});
+    $("cn").value = counts[it.id]?.n ?? ""; $("cn").focus();
+    // บันทึกได้หลังดูจนจบคลิปเท่านั้น — เฉลยต้องมาจากการดูจริง (เคยมีค่าที่บันทึกเร็วเกินกว่าจะดูทัน)
+    setWatched(!!counts[it.id]);
+  }
+  let watched = false;
+  function setWatched(v) {
+    watched = v; $("cSave").disabled = !v;
+    $("cSave").title = v ? "" : "ดูคลิปให้จบก่อน จึงบันทึกได้";
+  }
+  $("cv").addEventListener("ended", () => setWatched(true));
+  $("cv").addEventListener("timeupdate", () => { const v = $("cv"); if (v.duration && v.currentTime >= v.duration - 0.25) setWatched(true); });
+  async function saveCount() {
+    if (!watched) return;
+    const n = Number($("cn").value);
+    if ($("cn").value === "" || !Number.isInteger(n) || n < 0) { $("cn").focus(); return; }
+    const it = cItems[cpos];
+    counts[it.id] = { n, who, at: new Date().toISOString() };
+    await fetch("api/count", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: it.id, ...counts[it.id] }) });
+    if (cpos + 1 < cItems.length) { cpos += 1; showCount(); } else { $("cv").pause(); location.reload(); }
+  }
+  $("startCount").onclick = startCount;
+  $("cSave").onclick = saveCount;
+  $("cBack").onclick = () => { if (cpos > 0) { cpos -= 1; showCount(); } };
+  $("cSlow").onclick = () => { crate = crate === 1 ? 0.5 : crate === 0.5 ? 0.25 : 1; $("crate").textContent = crate + "×"; $("cv").playbackRate = crate; };
+  $("cHome").onclick = () => location.reload();
+  $("cn").addEventListener("keydown", e => { if (e.key === "Enter") saveCount(); });
+
+  // ---------- ขั้นที่ 2: ติดป้ายรายครั้ง ----------
+  function start() {
+    if (!askWho()) return;
+    order = items.map((_, i) => i);
+    pos = order.findIndex(i => !labels[items[i].id]);  // ทำต่อจากที่ค้าง
+    if (pos < 0) pos = order.length;
+    $("setup").hidden = true; $("work").hidden = false;
+    show();
+  }
+
+  function show() {
+    $("count").textContent = `${Math.min(pos + 1, order.length)} / ${order.length}`;
+    $("progBar").style.width = (100 * pos / order.length) + "%";
+    if (pos >= order.length) { finish(); return; }
+    const it = items[order[pos]];
+    $("tag").textContent = `รายการ ${pos + 1}`;
+    document.querySelectorAll("#errs input").forEach(c => { c.checked = (labels[it.id]?.errors || []).includes(c.value); });
+    if (v.dataset.url !== it.url) { v.src = it.url; v.dataset.url = it.url; }
+    v.playbackRate = rate;
+    const play = () => { v.currentTime = Math.max(0, it.t0 - PAD); v.play().catch(() => {}); };
+    if (v.readyState >= 1) play(); else v.onloadedmetadata = play;
+  }
+
+  // วนเล่นเฉพาะช่วงของครั้งนี้
+  v.addEventListener("timeupdate", () => {
+    const it = items[order[pos]]; if (!it) return;
+    const a = Math.max(0, it.t0 - PAD), b = it.t1 + PAD;
+    $("posBar").style.width = Math.min(100, Math.max(0, 100 * (v.currentTime - a) / (b - a))) + "%";
+    if (v.currentTime > b) { v.currentTime = a; }
+  });
+
+  async function mark(label) {
+    const it = items[order[pos]]; if (!it) return;
+    const errors = label === "bad" ? [...document.querySelectorAll("#errs input:checked")].map(c => c.value) : [];
+    const rec = { label, errors, who, at: new Date().toISOString() };
+    labels[it.id] = rec;
+    await fetch("api/label", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: it.id, ...rec }) });
+    pos += 1; show();
+  }
+
+  function finish() {
+    v.pause(); $("work").hidden = true; $("done").hidden = false;
+    const n = Object.values(labels);
+    const c = k => n.filter(x => x.label === k).length;
+    $("doneInfo").textContent = `ถูก ${c("good")} · ผิด ${c("bad")} · ไม่แน่ใจ ${c("unsure")} · ไม่ใช่ครั้งวิดพื้น ${c("notrep")} — บอก Claude ได้เลยว่าติดป้ายเสร็จแล้ว`;
+  }
+
+  $("start").onclick = start;
+  $("bGood").onclick = () => mark("good");
+  $("bBad").onclick = () => mark("bad");
+  $("bUnsure").onclick = () => mark("unsure");
+  $("bNotRep").onclick = () => mark("notrep");
+  $("bBack").onclick = () => { if (pos > 0) { pos -= 1; show(); } };
+  $("bReplay").onclick = () => show();
+  $("bSlow").onclick = () => { rate = rate === 1 ? 0.5 : rate === 0.5 ? 0.25 : 1; $("rate").textContent = rate + "×"; v.playbackRate = rate; };
+  document.addEventListener("keydown", e => {
+    if ($("work").hidden || e.target.tagName === "INPUT" && e.target.type !== "checkbox") return;
+    const k = e.key.toLowerCase();
+    if (k === "1") mark("good"); else if (k === "2") mark("bad"); else if (k === "3") mark("unsure");
+    else if (k === "4") mark("notrep"); else if (k === "backspace") { e.preventDefault(); $("bBack").click(); }
+    else if (k === "r") show(); else if (k === "s") $("bSlow").click();
+  });
+  load();
+</script>
+</body>
+</html>

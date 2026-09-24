@@ -1,6 +1,7 @@
 // ห่อ MediaPipe Tasks Web (Pose Landmarker) — on-device ในเบราว์เซอร์ (WASM/GPU)
 import { FilesetResolver, PoseLandmarker }
   from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+import { APP } from "./config.js";
 
 let landmarker = null;
 
@@ -15,7 +16,8 @@ export async function initPose() {
       delegate: "GPU"
     },
     runningMode: "VIDEO",
-    numPoses: 1,
+    // ตรวจได้หลายคน แล้วให้ posePick.js เลือกคนที่วิดพื้น (กันกระโดดไปจับคนที่ยืนอยู่ด้านหลัง)
+    numPoses: APP.MAX_POSES,
     minPoseDetectionConfidence: 0.6,
     minPosePresenceConfidence: 0.6,
     minTrackingConfidence: 0.6
@@ -23,11 +25,11 @@ export async function initPose() {
   return landmarker;
 }
 
-// videoEl: <video>, timestampMs: number -> array ของ 33 landmark {x,y,z,visibility} หรือ null
+// videoEl: <video>/<canvas>, timestampMs -> array ของคน (แต่ละคน 33 landmark {x,y,z,visibility}) หรือ null
 export function detect(videoEl, timestampMs) {
   if (!landmarker) return null;
   const res = landmarker.detectForVideo(videoEl, timestampMs);
   if (!res.landmarks || res.landmarks.length === 0) return null;
   // ใช้ worldLandmarks ไม่ได้สำหรับมุมภาพ 2D — ใช้ normalized landmarks (x,y in 0..1)
-  return res.landmarks[0];
+  return res.landmarks;
 }

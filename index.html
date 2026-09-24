@@ -57,6 +57,8 @@
     font-variant-numeric:tabular-nums; text-shadow:0 2px 8px rgba(0,0,0,.8);
     padding:4px 12px; background:rgba(15,23,42,.55); border-radius:12px; backdrop-filter:blur(4px);
   }
+  .repbox{display:flex; flex-direction:column; align-items:flex-start; gap:5px;}
+  .repok{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:18px; line-height:1.1; color:#7ee787; padding:2px 10px; background:rgba(15,23,42,.6); border-radius:999px; font-variant-numeric:tabular-nums;}
   #last{
     font-weight:600; font-size:15px; text-align:right; max-width:55%;
     padding:6px 12px; border-radius:999px; background:rgba(15,23,42,.6); text-shadow:0 1px 4px rgba(0,0,0,.8);
@@ -254,7 +256,7 @@
     <video id="video" playsinline muted></video>
     <canvas id="overlay" aria-hidden="true"></canvas>
     <div class="hud">
-      <div id="rep" aria-live="polite">0</div>
+      <div class="repbox"><div id="rep" aria-live="polite">0</div><div id="repOk" class="repok" title="ครั้งที่ท่าถูก">✓ 0</div></div>
       <div id="last" role="status" aria-live="polite"></div>
     </div>
     <div id="timer" class="timer" hidden aria-live="off"></div>
@@ -447,6 +449,6 @@
   </button>
 </nav>
 
-<script type="module" src="src/app.js?v=19"></script>
+<script type="module" src="src/app.js?v=20"></script>
 </body>
 </html>

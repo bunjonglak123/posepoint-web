@@ -1,7 +1,9 @@
 import { initPose, detect } from "./poseService.js";
 import { selectSide } from "./landmarks.js";
+import { pickPoseIndex, hipOf } from "./posePick.js";
+import { FeatureSmoother, windowFrames } from "./smooth.js";
 import { computeFeatures } from "./features.js";
-import { RepCounter } from "./counter.js";
+import { makeCounter } from "./counter.js";
 import { repScore, sessionScore } from "./scoring.js";
 import { rank } from "./leaderboard.js";
 import { CONFIG, APP } from "./config.js";
@@ -15,9 +17,12 @@ const $ = (id) => document.getElementById(id);
 const video = $("video"), canvas = $("overlay"), ctx = canvas.getContext("2d");
 const statusEl = $("statusText"), repEl = $("rep"), lastEl = $("last"), resultsEl = $("results"), lbEl = $("leaderboard"), resultsEmpty = $("resultsEmpty");
 const statStreak = $("statStreak"), statScore = $("statScore"), statCorrect = $("statCorrect"), fpsEl = $("fps");
+const repOkEl = $("repOk");                   // ครั้งที่ท่าถูก ใต้ตัวเลขใหญ่ (ตัวเลขใหญ่ = ทุกครั้งที่วิด)
 
 const DETECT_INTERVAL = 1000 / APP.DETECT_FPS;   // จำกัดอัตราการตรวจจับ (กัน backlog/ค้าง)
 let lastDetect = 0, fpsCount = 0, fpsT = 0, lastTs = 0;
+let prevHip = null;                          // สะโพกของคนที่เลือกเฟรมก่อน (ให้ติดตามคนเดิมต่อเนื่อง)
+const smoother = new FeatureSmoother(windowFrames(CONFIG.SMOOTH_MS, APP.DETECT_FPS));
 
 const targetRow = $("targetRow"), targetInput = $("targetInput"), targetLabel = $("targetLabel"), targetUnit = $("targetUnit");
 const timerEl = $("timer"), countdownEl = $("countdown"), countNum = $("countNum");
@@ -104,6 +109,11 @@ let mlModel = null, mlError = false;
 let mlOn = localStorage.getItem("pp_ml") !== "0";
 let collectFrames = false;                   // เปิดเฉพาะตอนสกัดชุดข้อมูล (analyzeVideoUrl) — ปกติไม่เก็บเฟรมดิบ
 let detStats = null;                         // นับผลการตรวจจับระหว่างสกัด ไว้ไล่หาสาเหตุเวลาไม่ได้ rep
+let extractT = null;                         // เวลาในคลิปของเฟรมที่กำลังสกัด (วินาที)
+let rawFrames = null;                        // ผลตรวจจับดิบทุกเฟรม (เฉพาะโหมดสกัดดิบ)
+// เก็บเฉพาะจุดที่ระบบใช้ (ไหล่ ศอก ข้อมือ สะโพก เข่า ข้อเท้า ทั้งสองข้าง) ไฟล์จะได้ไม่ใหญ่เกิน
+const KEEP = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
+const compactPose = p => Object.fromEntries(KEEP.map(i => [i, [+p[i].x.toFixed(4), +p[i].y.toFixed(4), +(p[i].visibility ?? 1).toFixed(3)]]));
 loadModel(APP.MODEL_URL)
   .then(m => { mlModel = m; })
   .catch(() => { mlError = true; })          // โหลดไม่ได้ -> ใช้เกณฑ์เชิงกฎแทน
@@ -127,6 +137,7 @@ function updateStats() {
   const correct = results.filter(r => r.verdict === "CORRECT").length;
   statStreak.textContent = streak;
   statCorrect.textContent = `${correct}/${results.length}`;
+  repOkEl.textContent = `✓ ${correct}`;
   const sc = results.length ? Math.round(sessionScore(results)) : null;
   statScore.textContent = sc === null ? "–" : sc;
   pulse(statScore, "bump");
@@ -168,17 +179,29 @@ function drawOverlay(lm) {
 function processFrame(tsMs, source = video) {
   // MediaPipe VIDEO mode ต้องได้ timestamp เพิ่มขึ้นเสมอ แม้สลับระหว่างวิเคราะห์ไฟล์กับกล้อง
   lastTs = Math.max(tsMs, lastTs + 1);
-  const raw = detect(source, lastTs);
+  const poses = detect(source, lastTs);
   if (detStats) detStats.frames += 1;
-  if (!raw) { drawOverlay(null); return; }
-  if (detStats) detStats.detected += 1;
+  // โหมดสกัดดิบ: เก็บผลตรวจจับของ "ทุกคน" ทุกเฟรม ไว้เล่นซ้ำออฟไลน์ (tools/replay.mjs)
+  // จะได้ปรับตัวเลือกคน/ตัวกรอง/ตัวนับได้โดยไม่ต้องรันตัวตรวจจับในเบราว์เซอร์ใหม่
+  if (rawFrames) rawFrames.push({ t: extractT, poses: (poses || []).map(compactPose) });
+  // เห็นหลายคน -> เลือกคนที่ลำตัวแนวนอนและอยู่ใกล้คนเดิม (ไม่งั้นจะกระโดดไปนับคนที่ยืนอยู่ด้านหลัง)
+  const pick = pickPoseIndex(poses, (source.videoWidth || source.width) / (source.videoHeight || source.height) || 1, prevHip, CONFIG.MIN_BODY_FLAT);
+  if (pick < 0) { drawOverlay(null); return; }
+  const raw = poses[pick];
+  prevHip = hipOf(raw);
+  if (detStats) { detStats.detected += 1; if (poses.length > 1) detStats.multi += 1; }
   const { landmarks } = selectSide(raw);
   // gate core joints — ไม่วาด/ไม่นับถ้า confidence ต่ำ (กันจับ background)
   const core = Math.min(landmarks.shoulder.visibility, landmarks.elbow.visibility, landmarks.wrist.visibility);
   if (core < CONFIG.MIN_VISIBILITY) { drawOverlay(null); return; }
   if (detStats) { detStats.usable += 1; if (detStats.elbow.length < 600) detStats.elbow.push(Math.round(computeFeatures(landmarks).elbowAngle)); }
   drawOverlay(landmarks);
-  const f = computeFeatures(landmarks);
+  const f = smoother.push(computeFeatures(landmarks));
+  if (collectFrames) {
+    // โหมดสกัดชุดข้อมูลเท่านั้น: เวลาในคลิป (ใช้เปิดดูครั้งนั้นตอนติดป้าย) + พิกัดดิบ (คิดคุณลักษณะใหม่ได้โดยไม่ต้องสกัดซ้ำ)
+    f.t = extractT;
+    f.lm = Object.fromEntries(Object.entries(landmarks).map(([k, p]) => [k, [+p.x.toFixed(4), +p.y.toFixed(4), +p.visibility.toFixed(3)]]));
+  }
   updateBodyHint(f.lowerVis);
   const m = counter.update(f);
   if (m) {
@@ -300,7 +323,7 @@ async function flipCamera() {
 }
 
 function beginSession() {
-  counter = new RepCounter(CONFIG); results = []; resultsEl.innerHTML = ""; lastEl.textContent = "";
+  counter = makeCounter(CONFIG); results = []; prevHip = null; smoother.setWindow(windowFrames(CONFIG.SMOOTH_MS, APP.DETECT_FPS)); resultsEl.innerHTML = ""; lastEl.textContent = "";
   if (resultsEmpty) resultsEmpty.style.display = "";
   repEl.textContent = "0"; streak = 0; updateStats();
   lastDetect = 0; fpsCount = 0; fpsT = performance.now(); fpsEl.textContent = "";
@@ -429,11 +452,13 @@ window.posepoint = {
   // วิเคราะห์ทีละเฟรมด้วยการ seek (ไม่พึ่ง requestAnimationFrame) — ใช้วัดผลฝั่งเว็บ/ตรวจในเบราว์เซอร์ที่ไม่ render
   async analyzeVideoUrl(url, fps = APP.ANALYZE_FPS, opts = {}) {
     collectFrames = !!opts.frames;       // opts.frames = true -> คืนลำดับเฟรมรายครั้งด้วย (สำหรับเทรนโมเดลลำดับเวลา)
-    detStats = { frames: 0, detected: 0, usable: 0, elbow: [] };
+    rawFrames = opts.raw ? [] : null;    // opts.raw = true -> คืนผลตรวจจับดิบทุกคนทุกเฟรม (เล่นซ้ำออฟไลน์)
+    detStats = { frames: 0, detected: 0, usable: 0, multi: 0, elbow: [] };
     await ensureReady();
     stopStream(); video.src = url; video.muted = true;
     await new Promise((res, rej) => { video.onloadeddata = res; video.onerror = () => rej(new Error("โหลดวิดีโอไม่ได้")); });
     resize(); beginSession(); running = false;          // หยุด loop อัตโนมัติ แล้วเดินเฟรมเอง
+    smoother.setWindow(windowFrames(CONFIG.SMOOTH_MS, fps));   // หน้าต่างตาม fps ที่เดินเฟรมจริง
     const step = 1 / fps;
     // คัดลอกเฟรมลง canvas ก่อนตรวจจับ: ได้ภาพจริงแม้เบราว์เซอร์ไม่ได้ render วิดีโอบนจอ
     const frame = document.createElement("canvas");
@@ -442,11 +467,13 @@ window.posepoint = {
     for (let i = 0; i * step < video.duration; i++) {
       await new Promise(r => { video.onseeked = r; video.currentTime = i * step; });
       fctx.drawImage(video, 0, 0, frame.width, frame.height);
+      extractT = +(i * step).toFixed(3);                 // เวลาของเฟรมนี้ในคลิป (วินาที)
       processFrame(lastTs + 1000 / fps, frame);          // เดินเวลาตามเฟรมของวิดีโอ (processFrame กันย้อนเวลาให้)
     }
-    const out = { reps: counter.count, stats: detStats, duration: video.duration,
+    const out = { reps: counter.count, stats: detStats, duration: video.duration, width: video.videoWidth, height: video.videoHeight, fps,
+                  raw: rawFrames,
                   results: results.map(x => ({ v: x.verdict, f: x.failed, s: x.skipped, j: x.judge, score: repScore(x), p: x.pIncorrect, m: x.members, rule: x.ruleFailed, feat: x.features, seq: x.seq })) };
-    collectFrames = false; detStats = null;
+    collectFrames = false; detStats = null; rawFrames = null;
     return out;
   },
   state: () => ({ ready, reps: counter ? counter.count : 0 })

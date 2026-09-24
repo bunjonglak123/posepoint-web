@@ -28,6 +28,7 @@ const LIMIT = Number(arg("--limit", "0"));
 const FPS = Number(arg("--fps", "25"));
 const PAGES = Number(arg("--pages", "3"));
 const RECYCLE = Number(arg("--recycle", "4"));      // เปิดแท็บใหม่ทุกกี่คลิป (กัน renderer พังสะสม)
+const RAW = args.includes("--raw");                  // เก็บผลตรวจจับดิบทุกคนทุกเฟรม (สำหรับ tools/replay.mjs)
 const VIDEO_EXT = /\.(mp4|avi|mov|webm|mkv)$/i;
 const CHROME = [
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
@@ -77,11 +78,12 @@ const HEADLESS = process.env.EXTRACT_HEADLESS === "1";
 const browser = await launch({
   executablePath: CHROME,
   headless: HEADLESS ? "new" : false,
-  protocolTimeout: 900000,        // คลิปหนึ่งใช้เวลาหลายสิบวินาที และช้าลงอีกเมื่อรันขนาน
+  protocolTimeout: 3600000,       // คลิปยาวที่ตรวจหลายคนใช้เวลาหลายนาที และช้าลงอีกเมื่อรันขนาน
   args: ["--no-sandbox", "--autoplay-policy=no-user-gesture-required",
          "--ignore-certificate-errors",              // cert ของ localhost เป็น self-signed
          "--allow-insecure-localhost",
-         "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader",
+         // headless ไม่มี GPU จริง -> ใช้ GPU จำลองด้วย CPU (ช้า); โหมดหน้าต่างใช้ GPU ของเครื่อง (เร็วกว่ามาก)
+         ...(HEADLESS ? ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] : []),
          "--enable-features=SharedArrayBuffer",
          "--window-position=-2400,0", "--window-size=900,700"]
 });
@@ -147,10 +149,11 @@ try {
       for (let attempt = 1; attempt <= 2; attempt++) {
         try {
           const r = await pg.evaluate(
-            (url, fps) => window.posepoint.analyzeVideoUrl(url, fps, { frames: true }),
-            clip.url, FPS);
+            (url, fps, raw) => window.posepoint.analyzeVideoUrl(url, fps, { frames: true, raw }),
+            clip.url, FPS, RAW);
           results[i] = {
             clip: clip.name, truth: clip.truth, duration: r.duration, stats: { ...r.stats, elbow: undefined },
+            ...(RAW ? { width: r.width, height: r.height, fps: r.fps, raw: r.raw } : {}),
             reps: r.results.map(x => ({ rule: x.v, failed: x.f, feat: x.feat, seq: x.seq }))
           };
           const s = r.stats || {}, el = s.elbow || [];
