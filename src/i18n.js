@@ -35,7 +35,7 @@ const STR = {
     voiceBack: "หลังแอ่น เกร็งลำตัว", voiceKnee: "เหยียดเข่าให้ตรง",
     alertForm: "ท่ายังไม่ถูก!", voiceForm: "ปรับท่าให้ถูกต้อง",
     // โมเดล ML
-    mlReady: (v) => `ใช้โมเดล ML ตัดสินท่า (รุ่น ${v})`, mlLoading: "กำลังโหลดโมเดล ML…",
+    mlReady: (v) => `ใช้โมเดล ML 3 ตัวช่วยกันตัดสิน: RF + LSTM + CNN (รุ่น ${v})`, mlLoading: "กำลังโหลดโมเดล ML…",
     mlFallback: "โหลดโมเดล ML ไม่ได้ — ใช้เกณฑ์เชิงกฎแทน", mlOff: "ปิดอยู่ — ใช้เกณฑ์เชิงกฎตัดสินท่า",
     // static UI (selector -> text)
     _: {
@@ -104,7 +104,7 @@ const STR = {
     voiceElbow: "Bend your elbows more", voiceDepth: "Go lower",
     voiceBack: "Keep your back straight", voiceKnee: "Straighten your knees",
     alertForm: "CHECK FORM!", voiceForm: "Fix your form",
-    mlReady: (v) => `ML model judges form (v${v})`, mlLoading: "Loading ML model…",
+    mlReady: (v) => `3 ML models judge together: RF + LSTM + CNN (v${v})`, mlLoading: "Loading ML model…",
     mlFallback: "ML model unavailable — using rule-based check", mlOff: "Off — using rule-based check",
     _: {
       "header .sub": "Push-up counter + form check · on-device",

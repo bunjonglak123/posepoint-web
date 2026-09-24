@@ -13,7 +13,7 @@ export const CONFIG = {
 export const APP = {
   DETECT_FPS: 24,             // จำกัดอัตราการตรวจจับ (กัน backlog/ค้าง)
   ANALYZE_FPS: 25,            // อัตราการเดินเฟรมตอนวิเคราะห์ไฟล์วิดีโอ
-  MODEL_URL: "model/pushup_rf.json",
+  MODEL_URL: "model/pushup_ensemble.json",   // RF + LSTM + 1D-CNN (export_ensemble.py)
   ML_THRESHOLD: 0.5,          // ใช้เมื่อไฟล์โมเดลไม่ได้ระบุ threshold มาเอง
   SCORE_MAX: 100,             // คะแนนเต็มต่อครั้ง
   PROB_DECIMALS: 3,           // ความละเอียดของความน่าจะเป็นที่บันทึกลงประวัติ

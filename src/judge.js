@@ -2,6 +2,7 @@
 import { evaluateRep } from "./criteria.js";
 import { repFeatureVector, FEATURE_NAMES } from "./repFeatures.js";
 import { predictIncorrectProba } from "./mlModel.js";
+import { seqProbas } from "./seqModel.js";
 import { APP } from "./config.js";
 
 const LOWER_VIS = FEATURE_NAMES.indexOf("lower_vis_mean");
@@ -18,8 +19,13 @@ export function judgeRep(m, cfg, model, mlOn) {
   // โมเดลเทรนจากคลิปเห็นเต็มตัว: ถ้ามองไม่เห็นครึ่งล่าง ค่ามุมหลัง/เข่าเชื่อไม่ได้ -> ใช้เกณฑ์เชิงกฎแทน
   if (x[LOWER_VIS] < cfg.MIN_VISIBILITY) { res.mlSkipped = "lowerBodyHidden"; return res; }
 
-  const p = predictIncorrectProba(model, x);
+  // รวมหลายโมเดล: RF (สถิติสรุป) + LSTM/CNN (ลำดับเฟรม) เฉลี่ยความน่าจะเป็น
+  // ไฟล์โมเดลรุ่นเก่าที่มีแต่ RF ก็ยังใช้ได้ (seqProbas คืน {})
+  const members = { rf: predictIncorrectProba(model, x), ...seqProbas(model, frames) };
+  const probs = Object.values(members);
+  const p = probs.reduce((s, v) => s + v, 0) / probs.length;
   res.judge = "ml";
+  res.members = members;
   res.pIncorrect = p;
   res.score = Math.round((1 - p) * APP.SCORE_MAX);
   res.ruleFailed = res.failed;

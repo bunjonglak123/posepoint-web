@@ -6,6 +6,16 @@ export function validateModel(m) {
   const names = m.feature_names || [];
   if (names.length !== FEATURE_NAMES.length || names.some((n, i) => n !== FEATURE_NAMES[i]))
     throw new Error("คุณลักษณะของโมเดลไม่ตรงกับ repFeatures.js");
+  // โมเดลลำดับเวลา (ถ้ามี) ต้องมีค่ามาตรฐานครบทุกช่อง และน้ำหนักรับจำนวนช่องเท่ากัน
+  if (m.lstm || m.cnn) {
+    const C = m.seq?.channels?.length;
+    if (!C || !m.seq.len || m.seq.mu?.length !== C || m.seq.sd?.length !== C)
+      throw new Error("ไฟล์โมเดลลำดับเวลาไม่มีค่ามาตรฐานของข้อมูล");
+    if (m.lstm && (m.lstm.wih?.[0]?.length !== C || m.lstm.whh?.length !== 4 * m.lstm.hidden))
+      throw new Error("น้ำหนัก LSTM มีขนาดไม่ถูกต้อง");
+    if (m.cnn && m.cnn.c1_w?.[0]?.length !== C)
+      throw new Error("น้ำหนัก CNN มีขนาดไม่ถูกต้อง");
+  }
   return m;
 }
 

@@ -103,6 +103,7 @@ const VOICE_KEY = { elbow: "voiceElbow", depth: "voiceDepth", back: "voiceBack",
 let mlModel = null, mlError = false;
 let mlOn = localStorage.getItem("pp_ml") !== "0";
 let collectFrames = false;                   // เปิดเฉพาะตอนสกัดชุดข้อมูล (analyzeVideoUrl) — ปกติไม่เก็บเฟรมดิบ
+let detStats = null;                         // นับผลการตรวจจับระหว่างสกัด ไว้ไล่หาสาเหตุเวลาไม่ได้ rep
 loadModel(APP.MODEL_URL)
   .then(m => { mlModel = m; })
   .catch(() => { mlError = true; })          // โหลดไม่ได้ -> ใช้เกณฑ์เชิงกฎแทน
@@ -168,11 +169,14 @@ function processFrame(tsMs, source = video) {
   // MediaPipe VIDEO mode ต้องได้ timestamp เพิ่มขึ้นเสมอ แม้สลับระหว่างวิเคราะห์ไฟล์กับกล้อง
   lastTs = Math.max(tsMs, lastTs + 1);
   const raw = detect(source, lastTs);
+  if (detStats) detStats.frames += 1;
   if (!raw) { drawOverlay(null); return; }
+  if (detStats) detStats.detected += 1;
   const { landmarks } = selectSide(raw);
   // gate core joints — ไม่วาด/ไม่นับถ้า confidence ต่ำ (กันจับ background)
   const core = Math.min(landmarks.shoulder.visibility, landmarks.elbow.visibility, landmarks.wrist.visibility);
   if (core < CONFIG.MIN_VISIBILITY) { drawOverlay(null); return; }
+  if (detStats) { detStats.usable += 1; if (detStats.elbow.length < 600) detStats.elbow.push(Math.round(computeFeatures(landmarks).elbowAngle)); }
   drawOverlay(landmarks);
   const f = computeFeatures(landmarks);
   updateBodyHint(f.lowerVis);
@@ -207,7 +211,9 @@ function renderRep(res) {
   lastEl.style.color = ok ? "#3fb950" : "#ff6b6b";
   const li = document.createElement("li");
   const sk = res.skipped.length ? ` (skip: ${res.skipped.join(",")})` : "";
-  const by = res.judge === "ml" ? " [ML]" : "";
+  // ตัดสินด้วย ML -> โชว์ความน่าจะเป็น "ท่าผิด" จากแต่ละโมเดล เช่น [RF .31 · LSTM .25 · CNN .28]
+  const by = res.judge !== "ml" ? "" : " [" + Object.entries(res.members || {})
+    .map(([k, p]) => `${k.toUpperCase()} ${p.toFixed(2).replace(/^0/, "")}`).join(" · ") + "]";
   li.textContent = `#${res.index} ${res.verdict}${by} — score ${repScore(res)}${res.failed.length ? " | fail: " + res.failed.join(",") : ""}${sk}`;
   li.style.color = ok ? "#3fb950" : "#ff6b6b";
   resultsEl.appendChild(li);
@@ -359,7 +365,8 @@ async function finalize() {
     modelVersion: mlModel && mlOn ? mlModel.version : null,
     perRep: results.map(r => ({
       index: r.index, score: repScore(r), verdict: r.verdict, failed: r.failed, skipped: r.skipped,
-      judge: r.judge, ...(r.judge === "ml" ? { pIncorrect: +r.pIncorrect.toFixed(APP.PROB_DECIMALS), ruleFailed: r.ruleFailed } : {})
+      judge: r.judge, ...(r.judge === "ml" ? { pIncorrect: +r.pIncorrect.toFixed(APP.PROB_DECIMALS), ruleFailed: r.ruleFailed,
+        members: Object.fromEntries(Object.entries(r.members || {}).map(([k, p]) => [k, +p.toFixed(APP.PROB_DECIMALS)])) } : {})
     }))
   };
   // สถิติใหม่? เทียบคะแนนกับเซสชันเดิม "ก่อน" บันทึกอันนี้
@@ -422,6 +429,7 @@ window.posepoint = {
   // วิเคราะห์ทีละเฟรมด้วยการ seek (ไม่พึ่ง requestAnimationFrame) — ใช้วัดผลฝั่งเว็บ/ตรวจในเบราว์เซอร์ที่ไม่ render
   async analyzeVideoUrl(url, fps = APP.ANALYZE_FPS, opts = {}) {
     collectFrames = !!opts.frames;       // opts.frames = true -> คืนลำดับเฟรมรายครั้งด้วย (สำหรับเทรนโมเดลลำดับเวลา)
+    detStats = { frames: 0, detected: 0, usable: 0, elbow: [] };
     await ensureReady();
     stopStream(); video.src = url; video.muted = true;
     await new Promise((res, rej) => { video.onloadeddata = res; video.onerror = () => rej(new Error("โหลดวิดีโอไม่ได้")); });
@@ -436,8 +444,9 @@ window.posepoint = {
       fctx.drawImage(video, 0, 0, frame.width, frame.height);
       processFrame(lastTs + 1000 / fps, frame);          // เดินเวลาตามเฟรมของวิดีโอ (processFrame กันย้อนเวลาให้)
     }
-    const out = { reps: counter.count, results: results.map(x => ({ v: x.verdict, f: x.failed, s: x.skipped, j: x.judge, score: repScore(x), p: x.pIncorrect, rule: x.ruleFailed, feat: x.features, seq: x.seq })) };
-    collectFrames = false;
+    const out = { reps: counter.count, stats: detStats, duration: video.duration,
+                  results: results.map(x => ({ v: x.verdict, f: x.failed, s: x.skipped, j: x.judge, score: repScore(x), p: x.pIncorrect, m: x.members, rule: x.ruleFailed, feat: x.features, seq: x.seq })) };
+    collectFrames = false; detStats = null;
     return out;
   },
   state: () => ({ ready, reps: counter ? counter.count : 0 })

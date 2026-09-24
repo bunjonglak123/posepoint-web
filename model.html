@@ -32,17 +32,25 @@
   .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:16px;}
   .card h2{margin:0 0 4px; font-size:19px; font-weight:600; text-transform:uppercase; color:#fff;}
   .lead{color:var(--muted-fg); font-size:14.5px; margin:0 0 14px;}
-  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px;}
+  .lead b{color:#fff; font-weight:600;}
+  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:10px;}
   .kpi{background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:12px 10px; text-align:center;}
   .kpi .v{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:30px; line-height:1.1; color:var(--secondary); font-variant-numeric:tabular-nums;}
   .kpi .l{font-size:11.5px; color:var(--muted-fg); text-transform:uppercase; letter-spacing:.5px;}
-  table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; font-size:15px;}
-  th,td{padding:9px 8px; border-bottom:1px solid var(--border); text-align:right;}
+  .how{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;}
+  .how div{background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:12px;}
+  .how b{display:block; color:var(--secondary); font-family:"Barlow Condensed",sans-serif; font-size:18px; letter-spacing:.3px;}
+  .how span{font-size:13.5px; color:var(--muted-fg);}
+  .tablewrap{overflow-x:auto;}
+  table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; font-size:14.5px;}
+  th,td{padding:8px 7px; border-bottom:1px solid var(--border); text-align:right; vertical-align:top;}
   th:first-child,td:first-child{text-align:left;}
-  thead th{font-size:12.5px; color:var(--muted-fg); text-transform:uppercase; letter-spacing:.4px; font-weight:600;}
+  thead th{font-size:12px; color:var(--muted-fg); text-transform:uppercase; letter-spacing:.4px; font-weight:600;}
   tbody tr:last-child td{border-bottom:0;}
-  td.win{color:var(--success); font-weight:600;}
-  .tag{display:inline-block; font-size:12px; padding:2px 9px; border-radius:999px; background:rgba(217,119,6,.18); color:var(--secondary); border:1px solid rgba(217,119,6,.35);}
+  td small{display:block; font-size:11px; color:var(--muted-fg); font-weight:400;}
+  td.best{color:var(--success);}
+  tr.deployed td{background:rgba(217,119,6,.10); font-weight:600;}
+  tr.deployed td:first-child{box-shadow:inset 3px 0 0 var(--primary);}
   figure{margin:0 0 18px;}
   figure:last-of-type{margin-bottom:0;}
   figure img{width:100%; height:auto; display:block; border-radius:12px; background:#fff; border:1px solid var(--border);}
@@ -53,7 +61,8 @@
   li b{color:#fff; font-weight:600;}
   dl{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin:0; font-size:14.5px;}
   dt{color:var(--muted-fg);} dd{margin:0; word-break:break-word;}
-  .warn{border-left:3px solid var(--secondary); padding-left:12px; color:var(--muted-fg); font-size:14px;}
+  .cite{font-size:13px; color:var(--muted-fg); line-height:1.6; margin:0 0 10px; overflow-wrap:anywhere;}
+  .cite:last-child{margin-bottom:0;}
   .err{color:#ff8787; font-size:14px;}
   a{color:var(--accent);}
   @media(prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important;}}
@@ -69,160 +78,186 @@
 <main>
   <section class="card">
     <h2 data-th="ระบบนี้แม่นแค่ไหน" data-en="How accurate is it?"></h2>
-    <p class="lead" data-th="ตัวเลขทั้งหมดในหน้านี้อ่านจากไฟล์โมเดลที่แอปใช้งานจริง และกราฟสร้างจากผลการทดสอบชุดเดียวกัน — ไม่ได้พิมพ์ตัวเลขใส่เอง"
-       data-en="Every number here is read from the model file the app actually runs, and the charts come from the same evaluation run — nothing is typed in by hand."></p>
+    <p class="lead" data-th="ทุกตัวเลขในหน้านี้อ่านจากไฟล์โมเดลที่แอปใช้งานจริง วัดโดย<b>ทดสอบกับคนที่โมเดลไม่เคยเห็น</b> — ไม่ได้พิมพ์ตัวเลขใส่เอง"
+       data-en="Every number here is read from the model file the app actually runs, measured on <b>people the model never saw</b> — nothing is typed in by hand."></p>
     <div class="kpis" id="kpis"></div>
     <p class="err" id="loadErr" hidden></p>
   </section>
 
   <section class="card">
-    <h2 data-th="เทียบกับวิธีเชิงกฎ" data-en="Versus the rule-based method"></h2>
-    <p class="lead" data-th="ทดสอบแบบแบ่งชุดตามคลิป (ครั้งจากคลิปเดียวกันไม่ข้ามชุด) เพื่อกันข้อมูลรั่ว ค่าของโมเดลเป็นค่าเฉลี่ย ± ส่วนเบี่ยงเบนจากการสุ่มแบ่ง 5 รอบ"
-       data-en="Evaluated with clip-grouped cross-validation so reps from one clip never span splits. Model values are mean ± SD over 5 shuffles."></p>
-    <table>
-      <thead><tr>
-        <th data-th="ตัวชี้วัด" data-en="Metric"></th>
-        <th data-th="วิธีเชิงกฎ" data-en="Rule-based"></th>
-        <th data-th="โมเดล ML" data-en="ML model"></th>
-      </tr></thead>
-      <tbody id="metrics"></tbody>
-    </table>
-    <p class="lead" style="margin:12px 0 0;" data-th="Precision = เตือนว่าผิดแล้วผิดจริงกี่ %, Recall = ท่าผิดทั้งหมดจับได้กี่ %, F1 = ค่าเฉลี่ยของสองตัวนี้"
-       data-en="Precision = of the reps flagged wrong, how many really were. Recall = of all wrong reps, how many were caught. F1 balances the two."></p>
+    <h2 data-th="สามโมเดลช่วยกันตัดสิน" data-en="Three models judge together"></h2>
+    <p class="lead" data-th="แต่ละโมเดลมองท่าวิดพื้นคนละมุม จึงผิดคนละแบบ พอเฉลี่ยความน่าจะเป็นของทั้งสาม ความผิดพลาดจึงหักล้างกัน"
+       data-en="Each model looks at the push-up differently, so they make different mistakes. Averaging their probabilities lets the errors cancel out."></p>
+    <div class="how">
+      <div><b>Random Forest</b><span data-th="ดูสถิติสรุปของทั้งครั้ง เช่น มุมศอกต่ำสุด มุมหลังเฉลี่ย (26 ค่า)" data-en="Reads summary statistics of the whole rep — lowest elbow angle, average back angle (26 values)."></span></div>
+      <div><b>LSTM</b><span data-th="อ่านการเคลื่อนไหวทีละเฟรมตามลำดับเวลา จำได้ว่าก่อนหน้านี้ท่าเป็นอย่างไร" data-en="Reads the motion frame by frame in order, remembering what came before."></span></div>
+      <div><b>1D-CNN</b><span data-th="จับรูปแบบสั้น ๆ ของการเคลื่อนไหว เช่น ช่วงที่สะโพกตก" data-en="Spots short motion patterns, such as the moment the hips drop."></span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 data-th="เทียบทุกวิธีที่ลอง" data-en="Every method we tried"></h2>
+    <p class="lead" data-th="แบ่งชุดทดสอบตามคน (คนเดียวกันไม่อยู่ทั้งชุดเทรนและชุดทดสอบ) ค่าเป็นค่าเฉลี่ย ± ส่วนเบี่ยงเบนจากการสุ่มแบ่งหลายรอบ แถวที่ไฮไลต์คือตัวที่แอปใช้"
+       data-en="Split by person, so nobody appears in both training and testing. Values are mean ± SD over repeated shuffles. The highlighted row is what the app runs."></p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th data-th="วิธี" data-en="Method"></th>
+          <th>Precision</th><th>Recall</th><th>F1</th><th>Accuracy</th>
+        </tr></thead>
+        <tbody id="metrics"></tbody>
+      </table>
+    </div>
+    <p class="lead" style="margin:12px 0 0;" data-th="Precision = เตือนว่าผิดแล้วผิดจริงกี่ % · Recall = ท่าผิดทั้งหมดจับได้กี่ % · F1 = สมดุลของสองค่านี้ · สีเขียว = ดีที่สุดในคอลัมน์"
+       data-en="Precision = of reps flagged wrong, how many really were · Recall = of all wrong reps, how many were caught · F1 balances both · green = best in column"></p>
   </section>
 
   <section class="card">
     <h2 data-th="กราฟผลการทดสอบ" data-en="Evaluation charts"></h2>
     <figure>
-      <img src="charts/chart_compare.png" alt="เปรียบเทียบ Precision Recall F1 Accuracy ระหว่างวิธีเชิงกฎกับโมเดล">
-      <figcaption data-th="<b>เทียบตัวชี้วัด</b> โมเดลตัดสินแม่นกว่าวิธีเชิงกฎชัดเจนในด้าน Precision และ Accuracy — แปลว่าเตือนพลาดน้อยลงมาก"
-                  data-en="<b>Metric comparison.</b> The model clearly beats the rule-based method on precision and accuracy — far fewer false alarms."></figcaption>
+      <img src="charts/chart_web_models.png" alt="เทียบ Precision Recall F1 Accuracy ของทุกวิธี แบ่งชุดทดสอบตามคน">
+      <figcaption data-th="<b>ข้อมูลทั้งหมด</b> รวมสามโมเดลได้ F1 และ Recall สูงสุด และชนะ Random Forest เดี่ยวครบทุกรอบที่สุ่มแบ่ง"
+                  data-en="<b>All data.</b> The three-model ensemble has the best F1 and recall, and beat the single Random Forest on every shuffle."></figcaption>
     </figure>
     <figure>
-      <img src="charts/chart_confusion.png" alt="Confusion matrix ของวิธีเชิงกฎและโมเดล">
-      <figcaption data-th="<b>Confusion matrix</b> ช่องขวาบนคือ &quot;เตือนทั้งที่ท่าถูก&quot; ซึ่งโมเดลลดลงได้มาก ส่วนช่องซ้ายล่างคือท่าผิดที่หลุดไป"
-                  data-en="<b>Confusion matrix.</b> Top-right is &quot;flagged but actually correct&quot; — the model cuts these sharply. Bottom-left is wrong reps that slipped through."></figcaption>
-    </figure>
-    <figure>
-      <img src="charts/chart_curves.png" alt="ROC curve และ Precision-Recall curve">
-      <figcaption data-th="<b>ROC และ Precision–Recall</b> วัดคุณภาพของค่าความน่าจะเป็นที่โมเดลให้ โดยไม่ขึ้นกับจุดตัดที่เลือก"
-                  data-en="<b>ROC and precision–recall curves.</b> These judge the quality of the model's probability output independently of the cut-off chosen."></figcaption>
-    </figure>
-    <figure>
-      <img src="charts/chart_importance.png" alt="คุณลักษณะที่โมเดลใช้มากที่สุด">
-      <figcaption data-th="<b>คุณลักษณะที่โมเดลใช้มากที่สุด</b> ตรวจสอบได้ว่าโมเดลตัดสินจากมุมของร่างกายจริง ไม่ใช่จากสิ่งแวดล้อมในภาพ"
-                  data-en="<b>Most-used features.</b> A check that the model decides from real body angles, not from background cues."></figcaption>
+      <img src="charts/chart_web_models_mendeley.png" alt="ผลเฉพาะชุดข้อมูลที่ถ่ายในฟิตเนสจริง">
+      <figcaption data-th="<b>เฉพาะชุดที่ถ่ายในฟิตเนสจริง</b> (หลายคน แสงและฉากหลังต่างกัน) เป็นกรณีที่ยากที่สุด ตัวเลขจึงต่ำกว่า — แสดงไว้ให้เห็นข้อจำกัดตรง ๆ"
+                  data-en="<b>Real-gym recordings only</b> (many people, varied lighting and backgrounds) — the hardest case, so the numbers are lower. Shown to be upfront about the limits."></figcaption>
     </figure>
     <figure>
       <img src="charts/chart_threshold.png" alt="ผลของค่าขีดแบ่งมุมเข่าต่อความแม่นยำ">
-      <figcaption data-th="<b>การเลือกค่าขีดแบ่ง</b> ทดลองเปลี่ยนค่ามุมเข่าบนชุดปรับค่า แล้วเลือกค่าที่ให้ F1 สูงสุด ไม่ได้ตั้งค่าตามความรู้สึก"
-                  data-en="<b>Threshold selection.</b> The knee angle was swept on a tuning split and the best-F1 value kept — not set by gut feeling."></figcaption>
+      <figcaption data-th="<b>การเลือกค่าขีดแบ่งของเกณฑ์เชิงกฎ</b> ทดลองเปลี่ยนค่ามุมเข่าบนชุดปรับค่า แล้วเลือกค่าที่ให้ F1 สูงสุด — เกณฑ์นี้ใช้บอกว่าผิดตรงไหน"
+                  data-en="<b>Rule threshold selection.</b> The knee angle was swept on a tuning split and the best-F1 value kept — the rules explain which part went wrong."></figcaption>
     </figure>
   </section>
 
   <section class="card">
     <h2 data-th="โมเดลที่แอปใช้อยู่" data-en="The model this app runs"></h2>
     <dl id="modelInfo"></dl>
-    <p class="lead" style="margin:14px 0 0;" data-th="โมเดลถูกแปลงเป็นไฟล์ JSON แล้วรันด้วย JavaScript ในเบราว์เซอร์ — วิดีโอไม่ถูกส่งออกจากเครื่อง และใช้งานได้แม้ออฟไลน์"
-       data-en="The model is exported to JSON and run by JavaScript in the browser — video never leaves the device, and it works offline."></p>
+    <p class="lead" style="margin:14px 0 0;" data-th="ทั้งสามโมเดลถูกแปลงเป็นไฟล์ JSON แล้วรันด้วย JavaScript ในเบราว์เซอร์ — วิดีโอไม่ถูกส่งออกจากเครื่อง และใช้งานได้แม้ออฟไลน์ ผลลัพธ์ตรงกับ PyTorch/scikit-learn ต่างกันไม่เกิน 0.0001 (มีเทสต์ยืนยัน)"
+       data-en="All three models are exported to JSON and run by JavaScript in the browser — video never leaves the device and it works offline. Outputs match PyTorch/scikit-learn within 0.0001 (verified by tests)."></p>
   </section>
 
   <section class="card">
     <h2 data-th="ข้อจำกัดที่ต้องบอกตรง ๆ" data-en="Honest limitations"></h2>
     <ul>
-      <li data-th="<b>เฉลยเป็นระดับคลิป</b> ไม่ใช่รายครั้ง ทุกครั้งในคลิปเดียวกันจึงได้เฉลยเดียวกัน — ครั้งที่ทำถูกในคลิปที่ติดป้ายว่าผิดจะถูกนับเป็นผิดไปด้วย"
-          data-en="<b>Labels are per clip, not per rep.</b> Every rep in a clip inherits the clip's label, so a good rep inside a clip labelled wrong counts as wrong."></li>
-      <li data-th="<b>ชุดข้อมูลสาธารณะ</b> ยังไม่ใช่ข้อมูลที่เก็บเอง จำนวนคนและมุมกล้องจึงจำกัด"
-          data-en="<b>Public dataset.</b> Not our own recordings yet, so the range of people and camera angles is limited."></li>
+      <li data-th="<b>ตัวเลขลดลงเมื่อวัดให้ถูกวิธี</b> รุ่นก่อนเคยรายงาน F1 0.77 แต่วัดโดยแบ่งตามคลิปในชุดที่ถ่ายจากฉากซ้ำ ๆ ข้อมูลจึงรั่ว พอเปลี่ยนเป็นทดสอบกับคนที่ไม่เคยเห็น ตัวเลขจริงคือที่แสดงในหน้านี้"
+          data-en="<b>The numbers dropped once measured properly.</b> An earlier version reported F1 0.77, but it split by clip on footage from repeated scenes, so data leaked. Tested on unseen people, the real numbers are the ones on this page."></li>
+      <li data-th="<b>เฉลยเป็นระดับคลิป</b> ทุกครั้งในคลิปได้เฉลยเดียวกัน ครั้งที่ทำถูกในคลิปที่ติดป้ายว่าผิดจึงถูกนับเป็นผิดไปด้วย — นี่คือเพดานหลักของความแม่นยำ ไม่ใช่ตัวโมเดล"
+          data-en="<b>Labels are per clip.</b> Every rep inherits its clip's label, so a good rep inside a clip labelled wrong counts as wrong — this, not the model, is the main accuracy ceiling."></li>
       <li data-th="<b>ต้องถ่ายมุมข้างเต็มตัว</b> ถ้ากล้องไม่เห็นสะโพก–เข่า–ข้อเท้า ระบบจะถอยไปใช้เกณฑ์เชิงกฎแทนโมเดล"
           data-en="<b>Needs a full side view.</b> If hip, knee and ankle are not visible the app falls back to the rule-based checks."></li>
-      <li data-th="<b>ขั้นต่อไป</b> เก็บข้อมูลเอง 15–20 คน ติดเฉลยรายครั้งพร้อมชนิดของท่าผิด แล้วเทรนใหม่โดยแบ่งชุดทดสอบตามคน"
-          data-en="<b>Next step:</b> record 15–20 people ourselves, label every rep with its error type, and retrain with a person-grouped split."></li>
+      <li data-th="<b>ขั้นต่อไป</b> เก็บข้อมูลเองและติดเฉลยรายครั้งพร้อมชนิดของท่าผิด แล้วเทรนใหม่ — คาดว่าจะช่วยได้มากกว่าการเปลี่ยนโมเดล"
+          data-en="<b>Next step:</b> record our own data with a label on every rep and its error type, then retrain — expected to help more than changing the model."></li>
     </ul>
+  </section>
+
+  <section class="card">
+    <h2 data-th="ชุดข้อมูลที่ใช้" data-en="Datasets used"></h2>
+    <p class="cite">Pai, S. A., PN, P., P, A., Mashetty, A., Kamath, P., Bhandary, R., &amp; Prashanth, D. S. (2026).
+      <i>A Multi-View Raw Video Dataset of Seven Fitness Exercises with Good/Bad Form Labels</i> (Version 3). Mendeley Data.
+      <a href="https://doi.org/10.17632/kgbb3yn47p.3" rel="noopener">doi:10.17632/kgbb3yn47p.3</a> ·
+      <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener">CC BY 4.0</a>
+      <span data-th="· ใช้เฉพาะวิดพื้นมุมข้าง" data-en="· side-view push-ups only"></span></p>
+    <p class="cite">Salama, M. A. <i>LSTM Exercise Classification: Push Up Videos</i>. Kaggle.
+      <a href="https://www.kaggle.com/datasets/mohamadashrafsalama/pushup" rel="noopener">kaggle.com/datasets/mohamadashrafsalama/pushup</a> ·
+      <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a></p>
   </section>
 </main>
 
 <script>
-  const STR = { th: { btn: "EN", locale: "th-TH" }, en: { btn: "TH", locale: "en-US" } };
-  let lang = localStorage.getItem("pp_lang") === "en" ? "en" : "th";
+  const MODEL_URL = "model/pushup_ensemble.json";
+  const DEPLOYED = "rf+lstm+cnn";
+  const ROWS = [
+    ["rule", "เกณฑ์เชิงกฎ", "Rules only"],
+    ["rf", "Random Forest", "Random Forest"],
+    ["lstm", "LSTM", "LSTM"],
+    ["cnn", "1D-CNN", "1D-CNN"],
+    ["rf+cnn", "RF + CNN", "RF + CNN"],
+    ["rf+lstm", "RF + LSTM", "RF + LSTM"],
+    ["rf+lstm+cnn", "RF + LSTM + CNN (ใช้จริง)", "RF + LSTM + CNN (deployed)"]
+  ];
+  const COLS = ["precision", "recall", "f1", "accuracy"];
+  let lang = "th";
+  try { lang = localStorage.getItem("pp_lang") === "en" ? "en" : "th"; } catch { /* ไม่มี storage ก็ใช้ภาษาไทย */ }
   const L = (th, en) => (lang === "en" ? en : th);
+  const pct = (v) => Math.round(v * 100) + "%";
+  const two = (v) => v.toFixed(2);
 
   function applyLang() {
     document.documentElement.lang = lang;
-    document.getElementById("btnLang").textContent = STR[lang].btn;
-    document.querySelectorAll("[data-th]").forEach(el => { el.innerHTML = el.dataset[lang]; });
-    if (model) render(model);            // เรนเดอร์ตัวเลขใหม่ตามภาษา
+    document.getElementById("btnLang").textContent = lang === "th" ? "EN" : "TH";
+    document.querySelectorAll("[data-th]").forEach(e => { e.innerHTML = e.dataset[lang]; });
+    if (model) render(model);            // ข้อความที่สร้างจากไฟล์โมเดลเปลี่ยนภาษาตามด้วย
   }
   document.getElementById("btnLang").addEventListener("click", () => {
     lang = lang === "th" ? "en" : "th";
-    localStorage.setItem("pp_lang", lang);
+    try { localStorage.setItem("pp_lang", lang); } catch { /* ignore */ }
     applyLang();
   });
 
-  const pct = (v) => (v * 100).toFixed(0) + "%";
-  const num = (v) => v.toFixed(2);
-
-  function cell(row, text, cls) {
-    const td = document.createElement("td");
-    td.textContent = text;
-    if (cls) td.className = cls;
-    row.appendChild(td);
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
   }
 
   function render(m) {
-    const ml = m.cv_grouped_by_clip, rule = m.rule_based_same_reps, tr = m.trained_on;
-
-    const kpis = [
-      [pct(ml.accuracy[0]), L("ความแม่นยำรวม", "Accuracy")],
-      [num(ml.f1[0]), L("F1 (โมเดล)", "F1 (model)")],
-      [String(tr.reps), L("ครั้งที่ใช้ทดสอบ", "Reps evaluated")],
-      [String(tr.clips), L("คลิป", "Clips")],
-      [modelKB + " KB", L("ขนาดโมเดล", "Model size")]
-    ];
+    const ev = m.eval, tr = m.trained_on;
+    const dep = ev && ev.metrics[DEPLOYED];
     const box = document.getElementById("kpis");
     box.textContent = "";
+    const kpis = [
+      dep && [two(dep.f1[0]), L("F1 (โมเดลรวม)", "F1 (ensemble)")],
+      dep && [pct(dep.accuracy[0]), L("ความแม่นยำรวม", "Accuracy")],
+      [String(tr.reps), L("ครั้งที่ใช้ทดสอบ", "Reps evaluated")],
+      [String(tr.subjects), L("คนที่ระบุตัวได้", "Identified people")],
+      [String(m.members.length), L("โมเดลช่วยกันตัดสิน", "Models voting")],
+      [modelKB + " KB", L("ขนาดไฟล์โมเดล", "Model file size")]
+    ].filter(Boolean);
     for (const [v, l] of kpis) {
-      const d = document.createElement("div"); d.className = "kpi";
-      const a = document.createElement("div"); a.className = "v"; a.textContent = v;
-      const b = document.createElement("div"); b.className = "l"; b.textContent = l;
-      d.append(a, b); box.appendChild(d);
+      const d = el("div", "kpi");
+      d.append(el("div", "v", v), el("div", "l", l));
+      box.appendChild(d);
     }
 
-    const rows = [
-      ["precision", L("Precision (เตือนแล้วผิดจริง)", "Precision")],
-      ["recall", L("Recall (จับท่าผิดได้)", "Recall")],
-      ["f1", "F1"],
-      ["accuracy", L("Accuracy (ความแม่นยำรวม)", "Accuracy")]
-    ];
     const tb = document.getElementById("metrics");
     tb.textContent = "";
-    for (const [key, label] of rows) {
-      const tr2 = document.createElement("tr");
-      cell(tr2, label);
-      cell(tr2, num(rule[key]));
-      cell(tr2, num(ml[key][0]) + " ± " + ml[key][1].toFixed(2), ml[key][0] > rule[key] ? "win" : "");
-      tb.appendChild(tr2);
+    if (ev) {
+      const rows = ROWS.filter(([k]) => ev.metrics[k]);
+      const best = Object.fromEntries(COLS.map(c => [c, Math.max(...rows.map(([k]) => ev.metrics[k][c][0]))]));
+      for (const [k, th, en] of rows) {
+        const r = el("tr", k === DEPLOYED ? "deployed" : "");
+        r.appendChild(el("td", "", L(th, en)));
+        for (const c of COLS) {
+          const [v, sd] = ev.metrics[k][c];
+          const td = el("td", v === best[c] ? "best" : "", two(v));
+          if (sd > 0) td.appendChild(el("small", "", "±" + two(sd)));
+          r.appendChild(td);
+        }
+        tb.appendChild(r);
+      }
     }
 
     const info = [
-      [L("ชนิดของโมเดล", "Model type"), "Random Forest (" + m.trees.length + L(" ต้น", " trees") + ")"],
-      [L("คุณลักษณะต่อครั้ง", "Features per rep"), String(m.feature_names.length)],
       [L("รุ่น / วันที่สร้าง", "Version / built"), m.version + " · " + m.created],
+      [L("โมเดลที่รวมกัน", "Ensemble"), m.members.map(x => x.toUpperCase()).join(" + ") + L(" (เฉลี่ยความน่าจะเป็น)", " (averaged probabilities)")],
+      ["Random Forest", m.trees.length + L(" ต้น · 26 คุณลักษณะ", " trees · 26 features")],
+      ["LSTM", L("หน่วยซ่อน ", "hidden units ") + m.lstm.hidden + L(" · ลำดับ ", " · sequence ") + m.seq.len + L(" จุด × ", " steps × ") + m.seq.channels.length + L(" ช่อง", " channels")],
+      ["1D-CNN", m.cnn.c1_w.length + L(" ฟิลเตอร์ × 2 ชั้น · kernel ", " filters × 2 layers · kernel ") + m.cnn.kernel],
       [L("จุดตัดตัดสิน", "Decision threshold"), String(m.threshold)],
-      [L("สกัดคุณลักษณะด้วย", "Features extracted by"), m.trained_on.features_from],
-      [L("ชุดข้อมูล", "Dataset"), m.trained_on.dataset]
+      [L("ข้อมูลที่ใช้เทรน", "Trained on"), tr.reps + L(" ครั้ง (ท่าผิด ", " reps (") + tr.incorrect + L(") จาก ", " wrong) from ") + tr.datasets.join(", ")],
+      [L("สกัดคุณลักษณะด้วย", "Features extracted by"), tr.features_from],
+      [L("วิธีประเมิน", "Evaluation"), ev ? ev.protocol : "–"]
     ];
     const dl = document.getElementById("modelInfo");
     dl.textContent = "";
-    for (const [k, v] of info) {
-      const dt = document.createElement("dt"); dt.textContent = k;
-      const dd = document.createElement("dd"); dd.textContent = v;
-      dl.append(dt, dd);
-    }
+    for (const [k, v] of info) dl.append(el("dt", "", k), el("dd", "", v));
   }
 
   let model = null, modelKB = "–";
-  fetch("model/pushup_rf.json")
+  fetch(MODEL_URL)
     .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
     .then(txt => {
       modelKB = Math.round(new Blob([txt]).size / 1024);
