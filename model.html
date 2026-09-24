@@ -67,6 +67,7 @@
   ul.rules code{font-size:12.5px; background:var(--bg); padding:1px 5px; border-radius:5px; color:var(--fg);}
   .cite{font-size:13px; color:var(--muted-fg); line-height:1.6; margin:0 0 10px; overflow-wrap:anywhere;}
   .cite:last-child{margin-bottom:0;}
+  h3.sub{font-size:15px; margin:18px 0 8px; color:var(--fg);}
   .err{color:#ff8787; font-size:14px;}
   a{color:var(--accent);}
   @media(prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important;}}
@@ -80,18 +81,38 @@
 </header>
 
 <main>
+  <section class="card" id="humanCard" hidden>
+    <h2 data-th="วัดกับคนดูจริงทีละครั้ง" data-en="Checked against a human, rep by rep"></h2>
+    <p class="lead" data-th="คนดูวิดีโอทีละครั้งแบบไม่รู้ว่าคลิปติดป้ายอะไร นับจำนวนครั้ง และตัดสินว่าแต่ละครั้งถูกหรือผิด แล้วเทียบกับที่แอปทำ — ทุกตัวเลขอ่านจากไฟล์ผลการทดสอบ ไม่ได้พิมพ์ใส่เอง"
+       data-en="A person watched every rep blind to the clip's label, counted the reps and judged each one right or wrong; the app is compared against that — every number is read from the results file, nothing typed in."></p>
+    <div class="kpis" id="humanKpis"></div>
+    <h3 class="sub" data-th="ตัดสินท่าวิธีไหนดีที่สุด (วัดกับคนที่ไม่เคยเห็น)" data-en="Which way of judging form is best (on unseen people)"></h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th data-th="วิธี" data-en="Method"></th>
+          <th>F1</th>
+          <th data-th="เตือนผิดทั้งที่ท่าถูก" data-en="False alarms on good reps"></th>
+          <th data-th="จับท่าผิดได้" data-en="Bad reps caught"></th>
+        </tr></thead>
+        <tbody id="judging"></tbody>
+      </table>
+    </div>
+    <ul class="rules" id="humanNotes"></ul>
+  </section>
+
   <section class="card">
-    <h2 data-th="ระบบนี้แม่นแค่ไหน" data-en="How accurate is it?"></h2>
-    <p class="lead" data-th="ทุกตัวเลขในหน้านี้อ่านจากไฟล์โมเดลที่แอปใช้งานจริง — ไม่ได้พิมพ์ตัวเลขใส่เอง ค่าที่ควรใช้อ้างอิงคือ <b>F1 กับคนใหม่</b> ซึ่งวัดกับคนที่โมเดลไม่เคยเห็นจริง ๆ"
-       data-en="Every number here is read from the model file the app actually runs — nothing is typed in by hand. The figure to quote is <b>F1 on new people</b>, measured on people the model truly never saw."></p>
+    <h2 data-th="โมเดล ML (ทดลอง) วัดกับป้ายระดับคลิป" data-en="ML models (experimental), scored on clip labels"></h2>
+    <p class="lead" data-th="ตัวเลขชุดนี้วัดกับป้ายของคลิป (ทุกครั้งในคลิปได้ป้ายเดียวกัน) ซึ่งตรงกับที่คนดูทีละครั้งแค่ <span class='agreeClip'></span> จึงสูงกว่าที่ควรเมื่อเทียบกับการ์ดด้านบน — ใช้ดูว่าโมเดลเรียนรู้ป้ายคลิปได้แค่ไหน ไม่ใช่ความแม่นยำที่ผู้ใช้เจอจริง"
+       data-en="These numbers are scored on clip labels (every rep takes its clip's label), which match the rep-by-rep human judgement only <span class='agreeClip'></span> of the time — so they look better than the card above. They show how well the models learn clip labels, not what a user experiences."></p>
     <div class="kpis" id="kpis"></div>
     <p class="err" id="loadErr" hidden></p>
   </section>
 
   <section class="card">
-    <h2 data-th="แอปใช้โมเดลอะไรอยู่" data-en="What the app runs"></h2>
-    <p class="lead" data-th="ทำงานสองชั้น — MediaPipe แค่หาจุดร่างกาย ส่วนการตัดสินท่าเป็นโมเดลที่โครงงานฝึกเอง"
-       data-en="Two layers — MediaPipe only finds the body points; judging the form is done by models this project trained itself."></p>
+    <h2 data-th="แอปใช้อะไรตัดสิน" data-en="What the app runs"></h2>
+    <p class="lead" data-th="ทำงานสามชั้น — MediaPipe แค่หาจุดร่างกาย ส่วนการนับและตัดสินท่าเป็นของโครงงานเอง ค่าเริ่มต้นใช้เกณฑ์ที่ปรับจากป้ายของคน เพราะแม่นกว่าโมเดล ML ในการทดสอบ ML ยังเปิดใช้ได้ในหน้าตั้งค่า"
+       data-en="Three layers — MediaPipe only finds the body points; counting and judging are this project's own. By default the app uses rules calibrated on human labels, because they beat the ML models in testing; ML can still be switched on in Settings."></p>
     <div class="tablewrap">
       <table class="layers">
         <thead><tr>
@@ -106,21 +127,24 @@
             <td data-th="หาจุดร่างกาย 33 จุดจากภาพกล้อง" data-en="Finds 33 body points in each camera frame"></td>
           </tr>
           <tr class="deployed">
-            <td data-th="2. ตัดสินท่า<small>ML ของโครงงาน · ฝึกเอง</small>" data-en="2. Judging<small>this project's ML · self-trained</small>"></td>
+            <td data-th="2. นับครั้ง<small>ของโครงงาน</small>" data-en="2. Counting<small>this project's</small>"></td>
+            <td data-th="นับตามรอบการงอ–เหยียดศอก" data-en="Elbow bend–extend cycles"></td>
+            <td data-th="นับทุกครั้งที่ลงแล้วขึ้น รวมครั้งที่ลงไม่สุด (แล้วให้ขั้นถัดไปบอกว่าผิด)" data-en="Counts every down-and-up, shallow ones included (the next step flags them)"></td>
+          </tr>
+          <tr class="deployed">
+            <td data-th="3. ตัดสินท่า<small>ค่าเริ่มต้น</small>" data-en="3. Judging<small>default</small>"></td>
+            <td data-th="เกณฑ์เชิงกฎ 3 ข้อ ปรับจากป้ายของคน" data-en="3 rules calibrated on human labels"></td>
+            <td data-th="ตัดสินถูก/ผิด และบอกว่าผิดตรงไหน" data-en="Decides right/wrong and says what went wrong"></td>
+          </tr>
+          <tr>
+            <td data-th="3. ตัดสินท่า<small>ทดลอง · เปิดในตั้งค่า</small>" data-en="3. Judging<small>experimental · opt-in</small>"></td>
             <td>RF + LSTM + 1D-CNN <small id="layerVersion"></small></td>
-            <td data-th="ตัดสินถูก/ผิด และให้คะแนนรายครั้ง" data-en="Decides right/wrong and scores every rep"></td>
+            <td data-th="เฉลี่ยความน่าจะเป็นที่ท่าผิดของสามโมเดล ผิดเมื่อ ≥ <span class='thr'></span>" data-en="Averages the three models' probability of a bad rep; bad when ≥ <span class='thr'></span>"></td>
           </tr>
         </tbody>
       </table>
     </div>
-    <ul class="rules">
-      <li data-th="<b>วิธีตัดสิน</b> เฉลี่ยความน่าจะเป็นที่ท่าผิดของทั้งสามโมเดล = p · ท่าผิดเมื่อ p ≥ <span class='thr'></span> · คะแนน = (1 − p) × 100"
-          data-en="<b>Decision:</b> average the three models' probability of a bad rep = p · bad when p ≥ <span class='thr'></span> · score = (1 − p) × 100"></li>
-      <li data-th="<b>กรณีสำรอง</b> ถ้ากล้องมองไม่เห็นขา หรือโหลดโมเดลไม่ได้ แอปใช้เกณฑ์เชิงกฎ 4 ข้อแทน"
-          data-en="<b>Fallback:</b> if the camera can't see the legs or the model fails to load, the app uses the 4 rule-based checks instead"></li>
-      <li data-th="<b>ดูในแอป</b> หน้าตั้งค่าบอกรุ่นโมเดล · ผลแต่ละครั้งโชว์ค่าจากทุกโมเดล เช่น <code>[RF .88 · LSTM .99 · CNN 1.00]</code>"
-          data-en="<b>In the app:</b> Settings shows the model version · every rep lists each model's value, e.g. <code>[RF .88 · LSTM .99 · CNN 1.00]</code>"></li>
-    </ul>
+    <ul class="rules" id="ruleList"></ul>
   </section>
 
   <section class="card">
@@ -166,24 +190,34 @@
   <section class="card">
     <h2 data-th="กราฟผลการทดสอบ" data-en="Evaluation charts"></h2>
     <figure>
+      <img src="charts/chart_human_counting.png" alt="จำนวนครั้งที่แอปนับเทียบกับที่คนนับ รายคลิป">
+      <figcaption data-th="<b>การนับ เทียบกับคนนับด้วยตา</b> แท่งเทา = จำนวนจริง · จุดส้ม = แอปนับได้"
+                  data-en="<b>Counting vs a human.</b> Grey bars = true count · orange dots = app count"></figcaption>
+    </figure>
+    <figure>
+      <img src="charts/chart_human_judging.png" alt="เปรียบเทียบวิธีตัดสินท่าเทียบกับการตัดสินของคน">
+      <figcaption data-th="<b>การตัดสินท่า เทียบกับคนดูทีละครั้ง</b> บนคนที่ไม่เคยเห็น — เกณฑ์ที่ปรับจากป้ายของคนได้ F1 สูงสุดและเตือนผิดน้อยกว่าเกณฑ์เดิมมาก"
+                  data-en="<b>Form judging vs a human, rep by rep,</b> on unseen people — rules calibrated on human labels get the best F1 and far fewer false alarms than the original rules"></figcaption>
+    </figure>
+    <figure>
       <img src="charts/chart_web_models.png" alt="เทียบ Precision Recall F1 Accuracy ของทุกวิธี แบ่งชุดทดสอบตามคน">
-      <figcaption data-th="<b>ข้อมูลทั้งหมด</b> รวมสามโมเดลได้ F1 และ Recall สูงสุด"
-                  data-en="<b>All data.</b> The three-model ensemble has the best F1 and recall."></figcaption>
+      <figcaption data-th="<b>ข้อมูลทั้งหมด · วัดกับป้ายคลิป</b> การรวมโมเดลได้ F1 สูงกว่าโมเดลเดี่ยว (รายละเอียดในตาราง &quot;เทียบทุกวิธีที่ลอง&quot;)"
+                  data-en="<b>All data · scored on clip labels.</b> Combining models beats every single model on F1 (details in &quot;Every method we tried&quot;)."></figcaption>
     </figure>
     <figure>
       <img src="charts/chart_web_models_mendeley.png" alt="ผลเฉพาะชุดข้อมูลที่ถ่ายในฟิตเนสจริง">
-      <figcaption data-th="<b>ฝึกและทดสอบด้วยชุดที่ถ่ายในฟิตเนสจริงอย่างเดียว</b> กรณีนี้ Random Forest ดีที่สุด ส่วน LSTM/CNN ได้ต่ำเพราะข้อมูลชุดเดียวน้อยเกินไปสำหรับโมเดลเชิงลึก — พอฝึกด้วยข้อมูลรวม โมเดลเชิงลึกทำได้ดีขึ้นกับคนกลุ่มเดียวกันนี้ (ตาราง &quot;แยกตามชุดข้อมูล&quot;)"
-                  data-en="<b>Trained and tested on the real-gym set alone.</b> Here Random Forest wins; LSTM/CNN lag because one set is too little data for deep models — trained on all data they do better on these same people (see &quot;By dataset&quot;)."></figcaption>
+      <figcaption data-th="<b>ฝึกและทดสอบด้วยชุดที่ถ่ายในฟิตเนสจริงอย่างเดียว · แบ่งตามคน · วัดกับป้ายคลิป</b> ได้ค่าใกล้เคียงหรือสูงกว่าการฝึกด้วยข้อมูลรวม — การเพิ่มชุด Kaggle ที่ถ่ายต่างสภาพไม่ได้ช่วยกับคนกลุ่มนี้"
+                  data-en="<b>Trained and tested on the real-gym set alone · split by person · scored on clip labels.</b> Results are similar to or better than training on all data — adding the Kaggle set, filmed in different conditions, did not help for these people."></figcaption>
     </figure>
     <figure>
       <img src="charts/chart_threshold.png" alt="ผลของค่าขีดแบ่งมุมเข่าต่อความแม่นยำ">
-      <figcaption data-th="<b>การเลือกค่าขีดแบ่งของเกณฑ์เชิงกฎ</b> ทดลองเปลี่ยนค่ามุมเข่าบนชุดปรับค่า แล้วเลือกค่าที่ให้ F1 สูงสุด — เกณฑ์นี้ใช้บอกว่าผิดตรงไหน"
-                  data-en="<b>Rule threshold selection.</b> The knee angle was swept on a tuning split and the best-F1 value kept — the rules explain which part went wrong."></figcaption>
+      <figcaption data-th="<b>วิธีเลือกค่าเกณฑ์รุ่นก่อน</b> ทดลองเปลี่ยนมุมเข่าบนชุดปรับค่าที่ใช้ป้ายคลิป — รุ่นปัจจุบันเลือกค่าเกณฑ์ทุกข้อพร้อมกันจากป้ายรายครั้งของคนแทน (การ์ดบนสุด)"
+                  data-en="<b>How the previous version picked thresholds:</b> the knee angle was swept on a clip-labelled tuning split — the current version tunes all thresholds together on per-rep human labels instead (top card)."></figcaption>
     </figure>
   </section>
 
   <section class="card">
-    <h2 data-th="โมเดลที่แอปใช้อยู่" data-en="The model this app runs"></h2>
+    <h2 data-th="โมเดล ML ที่เปิดใช้ได้" data-en="The optional ML model"></h2>
     <dl id="modelInfo"></dl>
     <p class="lead" style="margin:14px 0 0;" data-th="ทั้งสามโมเดลถูกแปลงเป็นไฟล์ JSON แล้วรันด้วย JavaScript ในเบราว์เซอร์ — วิดีโอไม่ถูกส่งออกจากเครื่อง และใช้งานได้แม้ออฟไลน์ ผลลัพธ์ตรงกับ PyTorch/scikit-learn ต่างกันไม่เกิน 0.0001 (มีเทสต์ยืนยัน)"
        data-en="All three models are exported to JSON and run by JavaScript in the browser — video never leaves the device and it works offline. Outputs match PyTorch/scikit-learn within 0.0001 (verified by tests)."></p>
@@ -196,12 +230,14 @@
           data-en="<b>The numbers dropped once measured properly.</b> An earlier version reported F1 0.77, but it split by clip on footage from repeated scenes, so data leaked. Tested on unseen people, the real numbers are the ones on this page."></li>
       <li data-th="<b>ชุด Kaggle ไม่ระบุตัวคน</b> จึงแบ่งชุดทดสอบได้แค่ตามคลิป ตัวเลขของชุดนี้อาจยังสูงเกินจริง — ใช้คอลัมน์ &quot;คนใหม่&quot; เป็นหลักในการอ้างอิง"
           data-en="<b>The Kaggle set has no person IDs,</b> so it can only be split by clip and its numbers may still be optimistic — quote the &quot;new people&quot; column."></li>
-      <li data-th="<b>เฉลยเป็นระดับคลิป</b> ทุกครั้งในคลิปได้เฉลยเดียวกัน ครั้งที่ทำถูกในคลิปที่ติดป้ายว่าผิดจึงถูกนับเป็นผิดไปด้วย — นี่คือเพดานหลักของความแม่นยำ ไม่ใช่ตัวโมเดล"
-          data-en="<b>Labels are per clip.</b> Every rep inherits its clip's label, so a good rep inside a clip labelled wrong counts as wrong — this, not the model, is the main accuracy ceiling."></li>
-      <li data-th="<b>ต้องถ่ายมุมข้างเต็มตัว</b> ถ้ากล้องไม่เห็นสะโพก–เข่า–ข้อเท้า ระบบจะถอยไปใช้เกณฑ์เชิงกฎแทนโมเดล"
-          data-en="<b>Needs a full side view.</b> If hip, knee and ankle are not visible the app falls back to the rule-based checks."></li>
-      <li data-th="<b>ขั้นต่อไป</b> เก็บข้อมูลเองและติดเฉลยรายครั้งพร้อมชนิดของท่าผิด แล้วเทรนใหม่ — คาดว่าจะช่วยได้มากกว่าการเปลี่ยนโมเดล"
-          data-en="<b>Next step:</b> record our own data with a label on every rep and its error type, then retrain — expected to help more than changing the model."></li>
+      <li data-th="<b>ตัดสินท่ารายครั้งยังยาก</b> เมื่อวัดกับคนดูทีละครั้ง ทุกวิธีได้ F1 ต่ำ (ดูการ์ดบนสุด) ค่ามุมจากภาพ 2 มิติของครั้งที่ถูกและผิดซ้อนทับกันเกือบทั้งหมด เพราะมุมกล้องทำให้มุมที่วัดได้เพี้ยนมากกว่าความต่างของท่าจริง"
+          data-en="<b>Judging single reps is still hard.</b> Scored against a human rep by rep, every method has a low F1 (see the top card). Angles measured from 2D video overlap almost completely between good and bad reps, because camera angle distorts them more than real form differences do."></li>
+      <li data-th="<b>ท่าผิดตัวอย่างมีน้อย</b> คนตัดสินว่าผิดแค่ <span class='nBad'></span> ครั้ง สอนโมเดล ML ด้วยป้ายรายครั้งจึงยังแย่กว่าสอนด้วยป้ายคลิป — ต้องเก็บท่าผิดเพิ่มก่อน"
+          data-en="<b>Few bad examples.</b> The human judged only <span class='nBad'></span> reps as wrong, so training ML on per-rep labels still did worse than on clip labels — more bad-form footage is needed first."></li>
+      <li data-th="<b>ต้องถ่ายมุมข้างเต็มตัว</b> ถ้ากล้องไม่เห็นสะโพก–เข่า–ข้อเท้า เกณฑ์หลัง/เข่าจะถูกข้าม"
+          data-en="<b>Needs a full side view.</b> If hip, knee and ankle are not visible the back/knee checks are skipped."></li>
+      <li data-th="<b>ผู้ตัดสินคนเดียว</b> ป้ายรายครั้งมาจากคนเดียว ความสม่ำเสมอเมื่อให้ตัดสินซ้ำ κ = <span class='kappa'></span> — ควรมีผู้ตัดสินคนที่สองเพื่อวัดความตรงกันระหว่างคน"
+          data-en="<b>One judge.</b> Per-rep labels come from one person; re-judging consistency is κ = <span class='kappa'></span> — a second judge is needed to measure agreement between people."></li>
     </ul>
   </section>
 
@@ -228,7 +264,7 @@
     ["cnn", "1D-CNN", "1D-CNN"],
     ["rf+cnn", "RF + CNN", "RF + CNN"],
     ["rf+lstm", "RF + LSTM", "RF + LSTM"],
-    ["rf+lstm+cnn", "RF + LSTM + CNN (ใช้จริง)", "RF + LSTM + CNN (deployed)"]
+    ["rf+lstm+cnn", "RF + LSTM + CNN (เมื่อเปิด ML)", "RF + LSTM + CNN (when ML is on)"]
   ];
   const COLS = ["precision", "recall", "f1", "accuracy"];
   let lang = "th";
@@ -242,6 +278,7 @@
     document.getElementById("btnLang").textContent = lang === "th" ? "EN" : "TH";
     document.querySelectorAll("[data-th]").forEach(e => { e.innerHTML = e.dataset[lang]; });
     if (model) render(model);            // ข้อความที่สร้างจากไฟล์โมเดลเปลี่ยนภาษาตามด้วย
+    if (human) renderHuman(human);
   }
   document.getElementById("btnLang").addEventListener("click", () => {
     lang = lang === "th" ? "en" : "th";
@@ -346,6 +383,79 @@
     dl.textContent = "";
     for (const [k, v] of info) dl.append(el("dt", "", k), el("dd", "", v));
   }
+
+  // ---- การ์ด "วัดกับคนดูจริง" (model/human_eval.json จาก pushup-counter/build_human_eval.py) ----
+  const JUDGE_ROWS = {
+    rules_old: ["เกณฑ์เดิม (ค่าจากตำรา)", "Original rules (textbook values)"],
+    ml_clip: ["ML 3 โมเดล สอนด้วยป้ายคลิป", "3-model ML, trained on clip labels"],
+    ml_rep: ["ML 3 โมเดล สอนด้วยป้ายรายครั้ง", "3-model ML, trained on per-rep labels"],
+    rules_new: ["เกณฑ์ที่ปรับจากป้ายของคน (ใช้จริง)", "Rules calibrated on human labels (deployed)"]
+  };
+  function renderHuman(h) {
+    const c = h.counting, lb = h.labels, jr = h.judging.rows, dep = jr.find(r => r.deployed);
+    const old = jr.find(r => r.key === "rules_old");
+    const box = document.getElementById("humanKpis");
+    box.textContent = "";
+    const kpis = [
+      [c.deployed.exact + "/" + c.clips, L("คลิปที่นับตรงเป๊ะ", "Clips counted exactly")],
+      [pct(c.deployed.recall), L("ของครั้งจริงที่นับได้ (เดิม ", "of real reps counted (was ") + pct(c.old.recall) + ")"],
+      [two(c.deployed.mae), L("นับคลาดเฉลี่ยต่อคลิป (เดิม ", "avg miscount per clip (was ") + two(c.old.mae) + ")"],
+      [two(dep.f1), L("F1 ตัดสินท่า กับคนใหม่", "Form F1 on new people")],
+      [pct(dep.false_alarm), L("เตือนผิดทั้งที่ท่าถูก (เดิม ", "false alarms on good reps (was ") + pct(old.false_alarm) + ")"],
+      [two(lb.kappa), L("ความสม่ำเสมอผู้ตัดสิน (kappa)", "Judge consistency (kappa)")]
+    ];
+    for (const [v, l] of kpis) { const d = el("div", "kpi"); d.append(el("div", "v", v), el("div", "l", l)); box.appendChild(d); }
+
+    const tb = document.getElementById("judging");
+    tb.textContent = "";
+    // ไฮไลต์เฉพาะ F1: เตือนผิดต่ำสุดอาจแค่เพราะแทบไม่เตือนเลย (ดู "จับท่าผิดได้")
+    const bestF1 = Math.max(...jr.map(r => r.f1));
+    for (const r of jr) {
+      const tr = el("tr", r.deployed ? "deployed" : "");
+      tr.appendChild(el("td", "", L(...JUDGE_ROWS[r.key])));
+      tr.appendChild(el("td", r.f1 === bestF1 ? "best" : "", two(r.f1)));
+      tr.appendChild(el("td", "", pct(r.false_alarm)));
+      tr.appendChild(el("td", "", pct(r.recall)));
+      tb.appendChild(tr);
+    }
+
+    const rs = h.judging.rules_setting, notes = document.getElementById("humanNotes");
+    notes.textContent = "";
+    const items = [
+      L(`<b>ข้อมูลที่ใช้วัด</b> ${lb.items} ครั้ง ตัดสินว่าถูก ${lb.dist.good} · ผิด ${lb.dist.bad} · ไม่ใช่การวิดพื้น ${lb.dist.notrep ?? 0} · ไม่แน่ใจ ${lb.dist.unsure ?? 0} — ใช้เฉพาะถูก/ผิดในการวัดผล ท่าผิดที่พบมากสุดคือลงไม่สุด (${lb.errors.shallow ?? 0}) และเข่างอ (${lb.errors.knee ?? 0})`,
+        `<b>Data:</b> ${lb.items} reps judged good ${lb.dist.good} · bad ${lb.dist.bad} · not a push-up ${lb.dist.notrep ?? 0} · unsure ${lb.dist.unsure ?? 0} — only good/bad are scored. Most common faults: too shallow (${lb.errors.shallow ?? 0}) and bent knees (${lb.errors.knee ?? 0})`),
+      L(`<b>ความสม่ำเสมอของผู้ตัดสิน</b> สุ่มให้ตัดสินซ้ำ ${lb.pairs} ครั้งโดยไม่บอก ตรงกับครั้งแรก ${lb.agree} ครั้ง (κ = ${two(lb.kappa)})`,
+        `<b>Judge consistency:</b> ${lb.pairs} reps were secretly shown twice; ${lb.agree} matched (κ = ${two(lb.kappa)})`),
+      L(`<b>การนับ</b> เทียบจำนวนที่คนนับ ${c.clips} คลิป · ตรวจแบบเลือกค่าจากคลิปอื่นแล้ววัดกับคลิปที่กันไว้ (leave-one-clip-out) นับคลาดเฉลี่ย ${two(c.loo.mae)} ครั้งต่อคลิป`,
+        `<b>Counting:</b> against human counts on ${c.clips} clips · choosing settings on the other clips and testing on the held-out one (leave-one-clip-out) gives ${two(c.loo.mae)} reps average miscount`),
+      L(`<b>วัดอย่างไร</b> แบ่งชุดทดสอบตามคน เลือกค่าเกณฑ์จากคนกลุ่มหนึ่งแล้ววัดกับคนที่ไม่เคยเห็น (nested) สุ่มแบ่ง ${h.judging.seeds} รอบ · คอลัมน์ F1 ของ ML ใช้จุดตัด 0.5 · สุ่มเดาได้ PR-AUC ${two(h.judging.prevalence_new)}`,
+        `<b>Protocol:</b> split by person; thresholds chosen on some people and tested on unseen ones (nested), ${h.judging.seeds} shuffles · ML F1 at cutoff 0.5 · chance PR-AUC ${two(h.judging.prevalence_new)}`)
+    ];
+    for (const t of items) { const li = el("li"); li.innerHTML = t; notes.appendChild(li); }
+
+    const rl = document.getElementById("ruleList");
+    rl.textContent = "";
+    const rules = [
+      rs.TRAVEL_MIN != null && L(`<b>ลงไม่สุด</b> ไหล่เลื่อนลงน้อยกว่า <code>${rs.TRAVEL_MIN} × ความยาวแขน</code>`, `<b>Too shallow:</b> shoulders drop less than <code>${rs.TRAVEL_MIN} × arm length</code>`),
+      rs.KNEE_MIN != null && L(`<b>เข่างอ</b> มุมเข่าต่ำกว่า <code>${rs.KNEE_MIN}°</code>`, `<b>Bent knees:</b> knee angle below <code>${rs.KNEE_MIN}°</code>`),
+      rs.BACK_MIN != null && L(`<b>หลังแอ่นมาก</b> มุมไหล่–สะโพก–เข่าต่ำกว่า <code>${rs.BACK_MIN}°</code> — คงไว้เพื่อความปลอดภัย ข้อมูลมีท่าสะโพกผิดน้อยเกินกว่าจะเลือกค่าได้`,
+                                  `<b>Severe sag:</b> shoulder–hip–knee angle below <code>${rs.BACK_MIN}°</code> — kept for safety; too few hip faults in the data to tune it`),
+      L("<b>ตัดออก</b> เกณฑ์มุมศอก (ลงต่ำกว่า 90° / เหยียดเกิน 150°) — มุมศอกจากภาพ 2 มิติเพี้ยนตามมุมกล้องจนแยกท่าถูก/ผิดไม่ได้",
+        "<b>Dropped:</b> elbow-angle checks (below 90° / above 150°) — 2D elbow angles shift with camera angle too much to tell good from bad")
+    ].filter(Boolean);
+    for (const t of rules) { const li = el("li"); li.innerHTML = t; rl.appendChild(li); }
+
+    document.querySelectorAll(".agreeClip").forEach(e => { e.textContent = pct(h.judging.label_agreement_clip_vs_rep); });
+    document.querySelectorAll(".nBad").forEach(e => { e.textContent = String(lb.dist.bad); });
+    document.querySelectorAll(".kappa").forEach(e => { e.textContent = two(lb.kappa); });
+    document.getElementById("humanCard").hidden = false;
+  }
+
+  let human = null;
+  fetch("model/human_eval.json")
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(h => { human = h; renderHuman(h); })
+    .catch(() => { /* ไม่มีไฟล์ผลการทดสอบกับคน -> ซ่อนการ์ดไว้ */ });
 
   let model = null, modelKB = "–";
   fetch(MODEL_URL)

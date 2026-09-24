@@ -1,5 +1,5 @@
 // service worker ขั้นต่ำ — cache app shell ให้ทำงานออฟไลน์ (PWA)
-const CACHE = "posepoint-v27";
+const CACHE = "posepoint-v29";
 const SHELL = [
   "./", "index.html", "model.html", "manifest.webmanifest", "icon.svg",
   "icon-192.png", "icon-512.png", "icon-maskable-512.png",
@@ -7,8 +7,8 @@ const SHELL = [
   "src/features.js", "src/counter.js", "src/criteria.js", "src/scoring.js",
   "src/leaderboard.js", "src/poseService.js", "src/posePick.js", "src/smooth.js", "src/store.js",
   "src/auth.js", "src/firebase-config.js",
-  "src/repFeatures.js", "src/mlModel.js", "src/seqModel.js", "src/judge.js", "model/pushup_ensemble.json",
-  "charts/chart_web_models.png", "charts/chart_web_models_mendeley.png", "charts/chart_threshold.png"
+  "src/repFeatures.js", "src/mlModel.js", "src/seqModel.js", "src/judge.js", "model/pushup_ensemble.json", "model/human_eval.json",
+  "charts/chart_web_models.png", "charts/chart_web_models_mendeley.png", "charts/chart_threshold.png", "charts/chart_human_counting.png", "charts/chart_human_judging.png"
 ];
 
 self.addEventListener("install", (e) => {

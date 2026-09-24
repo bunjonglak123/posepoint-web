@@ -106,7 +106,9 @@ const VOICE_KEY = { elbow: "voiceElbow", depth: "voiceDepth", back: "voiceBack",
 
 // ---------- โมเดล ML ตัดสินท่า (Random Forest, รันในเบราว์เซอร์) ----------
 let mlModel = null, mlError = false;
-let mlOn = localStorage.getItem("pp_ml") !== "0";
+// ค่าเริ่มต้น = เกณฑ์เชิงกฎ: เมื่อวัดกับป้ายรายครั้งของคน เกณฑ์ที่ปรับแล้วแม่นกว่าโมเดล ML (ดู model.html)
+// ใช้คีย์ใหม่ เพื่อให้ผู้ใช้เดิมที่เคยเปิด ML ไว้โดยค่าเริ่มต้นกลับมาใช้เกณฑ์ด้วย
+let mlOn = localStorage.getItem("pp_ml2") === "1";
 let collectFrames = false;                   // เปิดเฉพาะตอนสกัดชุดข้อมูล (analyzeVideoUrl) — ปกติไม่เก็บเฟรมดิบ
 let detStats = null;                         // นับผลการตรวจจับระหว่างสกัด ไว้ไล่หาสาเหตุเวลาไม่ได้ rep
 let extractT = null;                         // เวลาในคลิปของเฟรมที่กำลังสกัด (วินาที)
@@ -562,7 +564,7 @@ setSound.checked = soundOn;
 setSound.onchange = () => { soundOn = setSound.checked; localStorage.setItem("pp_sound", soundOn ? "1" : "0"); if (soundOn) beep(); };
 const setMl = $("setMl");
 setMl.checked = mlOn;
-setMl.onchange = () => { mlOn = setMl.checked; localStorage.setItem("pp_ml", mlOn ? "1" : "0"); updateMlStatus(); };
+setMl.onchange = () => { mlOn = setMl.checked; localStorage.setItem("pp_ml2", mlOn ? "1" : "0"); updateMlStatus(); };
 updateMlStatus();
 $("btnClearHistory").onclick = async () => {
   if (!confirm(t("confirmClear"))) return;

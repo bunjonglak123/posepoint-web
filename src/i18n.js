@@ -36,7 +36,7 @@ const STR = {
     alertForm: "ท่ายังไม่ถูก!", voiceForm: "ปรับท่าให้ถูกต้อง",
     // โมเดล ML
     mlReady: (v) => `ใช้โมเดล ML 3 ตัวช่วยกันตัดสิน: RF + LSTM + CNN (รุ่น ${v})`, mlLoading: "กำลังโหลดโมเดล ML…",
-    mlFallback: "โหลดโมเดล ML ไม่ได้ — ใช้เกณฑ์เชิงกฎแทน", mlOff: "ปิดอยู่ — ใช้เกณฑ์เชิงกฎตัดสินท่า",
+    mlFallback: "โหลดโมเดล ML ไม่ได้ — ใช้เกณฑ์เชิงกฎแทน", mlOff: "ใช้เกณฑ์เชิงกฎที่ปรับจากป้ายของคน (แม่นกว่า ML ในการทดสอบ)",
     // static UI (selector -> text)
     _: {
       "header .sub": "นับ + ตรวจฟอร์มวิดพื้น · on-device",
@@ -59,7 +59,7 @@ const STR = {
       "#btnSignIn": "เข้าสู่ระบบ", "#btnSignUp": "สมัคร",
       "#btnSyncCloud": "ซิงค์ขึ้นคลาวด์", "#btnSignOut": "ออกจากระบบ",
       "#authSignedIn > p": "เข้าสู่ระบบในชื่อ",
-      "#settingsTitle": "ตั้งค่า", "#soundLabel": "เสียงตอนนับ/นับถอยหลัง/พูดเตือน", "#mlLabel": "ใช้โมเดล ML ตัดสินท่า",
+      "#settingsTitle": "ตั้งค่า", "#soundLabel": "เสียงตอนนับ/นับถอยหลัง/พูดเตือน", "#mlLabel": "ใช้โมเดล ML ตัดสินท่า (ทดลอง)",
       "#btnClearHistory": "ล้างประวัติทั้งหมด (ในเครื่อง)",
       "#howtoTitle": "วิธีใช้งาน",
       "#guide h2": "วางกล้องแบบนี้", "#btnGuideClose": "เข้าใจแล้ว",
@@ -105,7 +105,7 @@ const STR = {
     voiceBack: "Keep your back straight", voiceKnee: "Straighten your knees",
     alertForm: "CHECK FORM!", voiceForm: "Fix your form",
     mlReady: (v) => `3 ML models judge together: RF + LSTM + CNN (v${v})`, mlLoading: "Loading ML model…",
-    mlFallback: "ML model unavailable — using rule-based check", mlOff: "Off — using rule-based check",
+    mlFallback: "ML model unavailable — using rule-based check", mlOff: "Using rules calibrated on human labels (beat ML in testing)",
     _: {
       "header .sub": "Push-up counter + form check · on-device",
       "#modeFree": "Freestyle", "#modeReps": "Reps Goal", "#modeTime": "Time Attack",
@@ -127,7 +127,7 @@ const STR = {
       "#btnSignIn": "Sign In", "#btnSignUp": "Sign Up",
       "#btnSyncCloud": "Sync to Cloud", "#btnSignOut": "Sign Out",
       "#authSignedIn > p": "Signed in as",
-      "#settingsTitle": "Settings", "#soundLabel": "Sound (count / countdown / voice)", "#mlLabel": "Judge form with ML model",
+      "#settingsTitle": "Settings", "#soundLabel": "Sound (count / countdown / voice)", "#mlLabel": "Judge form with ML model (experimental)",
       "#btnClearHistory": "Clear all history (local)",
       "#howtoTitle": "How to Use",
       "#guide h2": "Place Camera Like This", "#btnGuideClose": "Got it",

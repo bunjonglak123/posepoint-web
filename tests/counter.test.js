@@ -96,3 +96,8 @@ test("makeCounter เลือกตามค่าตั้ง", () => {
   assert.ok(makeCounter({ ...CONFIG, COUNT_MODE: "cycle" }) instanceof CycleCounter);
   assert.ok(!(makeCounter({ ...CONFIG, COUNT_MODE: "abs" }) instanceof CycleCounter));
 });
+
+test("rep metrics include shoulder travel relative to arm length", () => {
+  const { done } = drive([TOP(), BOT(), TOP()]);
+  assert.ok(Math.abs(done[0].travelRatio - 2) < 1e-9, "ไหล่เลื่อน 0.2 / แขน 0.1 = 2");
+});

@@ -77,6 +77,7 @@ function repMetrics(buf, cfg, count) {
   const kneeMin = lower.length ? Math.min(...lower.map(x => x.kneeAngle)) : null;
   return {
     index: count, valid,
+    travelRatio: arm > 0 ? travel / arm : 0,   // ไหล่เลื่อนแนวดิ่ง / ความยาวแขน (ใช้ในเกณฑ์ "ลงไม่สุด")
     elbowMin: Math.min(...el), elbowMax: Math.max(...el),
     wsdMin: Math.min(...ws), wsdMax: Math.max(...ws),
     backMin, kneeMin

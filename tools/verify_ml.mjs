@@ -29,7 +29,7 @@ try {
   const errors = [];
   page.on("pageerror", e => errors.push(e.message));
   await page.goto(`${ORIGIN}/index.html`, { waitUntil: "load" });
-  await page.evaluate(() => localStorage.setItem("pp_ml", "1"));
+  await page.evaluate(() => localStorage.setItem("pp_ml2", "1"));
   await page.reload({ waitUntil: "load" });
   await page.waitForFunction(() => /RF \+ LSTM \+ CNN/.test(document.getElementById("mlStatus")?.textContent || ""), { timeout: 60000 });
   console.log("สถานะโมเดล:", await page.$eval("#mlStatus", e => e.textContent));
