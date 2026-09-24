@@ -16,15 +16,38 @@ const MIME = {
   ".css": "text/css", ".task": "application/octet-stream"
 };
 
+// โฟลเดอร์คลิปสำหรับสกัดชุดข้อมูล (เฉพาะตอนพัฒนา) — เสิร์ฟที่ /clips/ ให้เป็น origin เดียวกับแอป
+// ไม่งั้น canvas จะโดน taint แล้ว MediaPipe อ่านภาพไม่ได้
+const CLIPS = process.env.POSEPOINT_CLIPS ? normalize(process.env.POSEPOINT_CLIPS) : null;
+
+// ตอบแบบรองรับ Range — ถ้าไม่มี Accept-Ranges เบราว์เซอร์จะ seek วิดีโอไม่ได้ (video.seekable ว่าง)
+function send(res, data, type, range) {
+  const head = { "Content-Type": type, "Accept-Ranges": "bytes" };
+  const m = range && /bytes=(\d*)-(\d*)/.exec(range);
+  if (!m) {
+    res.writeHead(200, { ...head, "Content-Length": data.length });
+    res.end(data);
+    return;
+  }
+  const start = m[1] ? parseInt(m[1], 10) : 0;
+  const end = Math.min(m[2] ? parseInt(m[2], 10) : data.length - 1, data.length - 1);
+  if (start >= data.length || start > end) {
+    res.writeHead(416, { ...head, "Content-Range": `bytes */${data.length}` }).end();
+    return;
+  }
+  res.writeHead(206, { ...head, "Content-Range": `bytes ${start}-${end}/${data.length}`, "Content-Length": end - start + 1 });
+  res.end(data.subarray(start, end + 1));
+}
+
 const handler = async (req, res) => {
   try {
     let p = decodeURIComponent(new URL(req.url, "http://x").pathname);
     if (p === "/") p = "/index.html";
-    const file = normalize(join(ROOT, p));
-    if (!file.startsWith(ROOT)) { res.writeHead(403).end("forbidden"); return; }
-    const data = await readFile(file);
-    res.writeHead(200, { "Content-Type": MIME[extname(file)] || "application/octet-stream" });
-    res.end(data);
+    const root = CLIPS && p.startsWith("/clips/") ? CLIPS : ROOT;
+    const rel = root === CLIPS ? p.slice("/clips".length) : p;
+    const file = normalize(join(root, rel));
+    if (!file.startsWith(root)) { res.writeHead(403).end("forbidden"); return; }
+    send(res, await readFile(file), MIME[extname(file)] || "application/octet-stream", req.headers.range);
   } catch {
     res.writeHead(404).end("not found");
   }
