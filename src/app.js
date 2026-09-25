@@ -9,7 +9,7 @@ import { rank } from "./leaderboard.js";
 import { CONFIG, APP } from "./config.js";
 import { saveSession, listSessions, clearSessions } from "./store.js";
 import * as auth from "./auth.js";
-import { t, getLang, applyStatic, toggleLang } from "./i18n.js?v=11";
+import { t, getLang, applyStatic, toggleLang } from "./i18n.js?v=12";
 import { loadModel } from "./mlModel.js";
 import { judgeRep } from "./judge.js";
 

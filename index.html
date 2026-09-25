@@ -331,7 +331,7 @@
     <div class="empty" id="resultsEmpty">ยังไม่มี rep — เริ่มจับท่าเพื่อดูผล</div>
   </section>
   <section class="card">
-    <p class="note" id="noteClip">คลิปท่อนบน (ไม่เห็นสะโพก/เข่า/ข้อเท้า) จะวัดได้แค่เกณฑ์ <b>ศอก</b> + <b>ความลึก</b> ส่วนหลัง/เข่าจะถูก skip. อยากครบ 4 เกณฑ์ให้ถ่าย <b>เต็มตัวมุมข้าง</b>.</p>
+    <p class="note" id="noteClip">คลิปท่อนบน (ไม่เห็นสะโพก/เข่า/ข้อเท้า) จะวัดได้แค่เกณฑ์ <b>ลงไม่สุด</b> ส่วนหลัง/เข่าจะถูกข้าม อยากครบ 3 เกณฑ์ให้ถ่าย <b>เต็มตัวมุมข้าง</b></p>
     <p class="note" id="notePrivacy" style="margin-top:10px;">ประมวลผลในเครื่อง ไม่อัปโหลดวิดีโอ · <a href="privacy.html" style="color:var(--accent);">นโยบายความเป็นส่วนตัว</a></p>
     <a class="btnlink linkAccuracy" href="model.html" style="margin-top:12px;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6" rx="1"/><rect x="12" y="8" width="3" height="10" rx="1"/><rect x="17" y="4" width="3" height="14" rx="1"/></svg>
@@ -388,7 +388,7 @@
       <h2 id="howtoTitle">วิธีใช้งาน</h2>
       <ol id="howtoList" class="muted-note" style="padding-left:18px; margin:0;">
         <li>เลือกโหมด: Freestyle / เป้าจำนวน / จับเวลา</li>
-        <li>วางมือถือให้เห็น<b>มุมข้าง</b> ทั้งตัว (อยากครบ 4 เกณฑ์ ต้องเห็นสะโพก-เข่า-ข้อเท้า)</li>
+        <li>วางมือถือให้เห็น<b>มุมข้าง</b> ทั้งตัว (อยากครบ 3 เกณฑ์ ต้องเห็นสะโพก-เข่า-ข้อเท้า)</li>
         <li>กด "เริ่มกล้อง" → รอนับถอยหลัง 3-2-1 → วิดพื้น</li>
         <li>ดูผลแต่ละครั้ง + คะแนน; จบเซตดูสรุป</li>
         <li>ติดตั้งเป็นแอป: เมนูเบราว์เซอร์ → "Add to Home screen"</li>
@@ -421,11 +421,11 @@
     </svg>
     <ol id="guideList">
       <li>หัน<b>ด้านข้าง</b>ให้กล้อง (ตั้งฉาก 90° ไม่เฉียง)</li>
-      <li>กล้องเห็น<b>เต็มตัว หัวถึงเท้า</b> — ขาดขา = วัดได้แค่ 2 เกณฑ์</li>
+      <li>กล้องเห็น<b>เต็มตัว หัวถึงเท้า</b> — ขาดขา = วัดได้แค่เกณฑ์ลงไม่สุด</li>
       <li>วางกล้อง<b>ต่ำ</b> ระดับลำตัว ห่าง ~1.5-2 ม. แนวนอน</li>
       <li>แสงสว่างพอ ฉากหลังโล่ง</li>
     </ol>
-    <p class="muted-note" id="guideNote">เห็นเต็มตัว = ตรวจครบ 4 เกณฑ์ (ศอก/ลึก/หลัง/เข่า)</p>
+    <p class="muted-note" id="guideNote">เห็นเต็มตัว = ตรวจครบ 3 เกณฑ์ (ลงไม่สุด/หลัง/เข่า)</p>
     <button id="btnGuideClose" class="primary" style="width:100%; margin-top:8px;">เข้าใจแล้ว</button>
   </div>
 </div>
@@ -449,6 +449,6 @@
   </button>
 </nav>
 
-<script type="module" src="src/app.js?v=21"></script>
+<script type="module" src="src/app.js?v=22"></script>
 </body>
 </html>

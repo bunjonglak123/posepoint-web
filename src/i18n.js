@@ -15,8 +15,8 @@ const STR = {
     noReps: "ไม่พบ rep",
     finalized: (r, c, a) => `จบ: ${r} reps | ถูก ${c} | avg ${a}`,
     flipFail: "สลับกล้องไม่ได้: ",
-    hintFull: "✓ เห็นเต็มตัว · 4 เกณฑ์",
-    hintUpper: "⚠ เห็นแค่ท่อนบน · ขยับให้เห็นขา (2 เกณฑ์)",
+    hintFull: "✓ เห็นเต็มตัว · 3 เกณฑ์",
+    hintUpper: "⚠ เห็นแค่ท่อนบน · ขยับให้เห็นขา (1 เกณฑ์)",
     targetRepsLabel: "จำนวนครั้ง", targetRepsUnit: "ครั้ง",
     targetTimeLabel: "เวลา (วินาที)", targetTimeUnit: "วินาที",
     lbTitle: "อันดับ", lbEmpty: "ยังไม่มีข้อมูล — เล่นสักเซตก่อน",
@@ -63,14 +63,14 @@ const STR = {
       "#btnClearHistory": "ล้างประวัติทั้งหมด (ในเครื่อง)",
       "#howtoTitle": "วิธีใช้งาน",
       "#guide h2": "วางกล้องแบบนี้", "#btnGuideClose": "เข้าใจแล้ว",
-      "#guideNote": "เห็นเต็มตัว = ตรวจครบ 4 เกณฑ์ (ศอก/ลึก/หลัง/เข่า)",
+      "#guideNote": "เห็นเต็มตัว = ตรวจครบ 3 เกณฑ์ (ลงไม่สุด/หลัง/เข่า)",
       "a.linkAccuracy": "ดูความแม่นยำของโมเดล →"
     },
     _html: {
-      "#noteClip": 'คลิปท่อนบน (ไม่เห็นสะโพก/เข่า/ข้อเท้า) จะวัดได้แค่เกณฑ์ <b>ศอก</b> + <b>ความลึก</b> ส่วนหลัง/เข่าจะถูก skip. อยากครบ 4 เกณฑ์ให้ถ่าย <b>เต็มตัวมุมข้าง</b>.',
+      "#noteClip": 'คลิปท่อนบน (ไม่เห็นสะโพก/เข่า/ข้อเท้า) จะวัดได้แค่เกณฑ์ <b>ลงไม่สุด</b> ส่วนหลัง/เข่าจะถูกข้าม อยากครบ 3 เกณฑ์ให้ถ่าย <b>เต็มตัวมุมข้าง</b>',
       "#notePrivacy": 'ประมวลผลในเครื่อง ไม่อัปโหลดวิดีโอ · <a href="privacy.html" style="color:var(--accent);">นโยบายความเป็นส่วนตัว</a>',
-      "#howtoList": '<li>เลือกโหมด: Freestyle / เป้าจำนวน / จับเวลา</li><li>วางมือถือให้เห็น<b>มุมข้าง</b> ทั้งตัว (อยากครบ 4 เกณฑ์ ต้องเห็นสะโพก-เข่า-ข้อเท้า)</li><li>กด "เริ่มกล้อง" → รอนับถอยหลัง 3-2-1 → วิดพื้น</li><li>ดูผลแต่ละครั้ง + คะแนน; จบเซตดูสรุป</li><li>ติดตั้งเป็นแอป: เมนูเบราว์เซอร์ → "Add to Home screen"</li>',
-      "#guideList": '<li>หัน<b>ด้านข้าง</b>ให้กล้อง (ตั้งฉาก 90° ไม่เฉียง)</li><li>กล้องเห็น<b>เต็มตัว หัวถึงเท้า</b> — ขาดขา = วัดได้แค่ 2 เกณฑ์</li><li>วางกล้อง<b>ต่ำ</b> ระดับลำตัว ห่าง ~1.5-2 ม. แนวนอน</li><li>แสงสว่างพอ ฉากหลังโล่ง</li>'
+      "#howtoList": '<li>เลือกโหมด: Freestyle / เป้าจำนวน / จับเวลา</li><li>วางมือถือให้เห็น<b>มุมข้าง</b> ทั้งตัว (อยากครบ 3 เกณฑ์ ต้องเห็นสะโพก-เข่า-ข้อเท้า)</li><li>กด "เริ่มกล้อง" → รอนับถอยหลัง 3-2-1 → วิดพื้น</li><li>ดูผลแต่ละครั้ง + คะแนน; จบเซตดูสรุป</li><li>ติดตั้งเป็นแอป: เมนูเบราว์เซอร์ → "Add to Home screen"</li>',
+      "#guideList": '<li>หัน<b>ด้านข้าง</b>ให้กล้อง (ตั้งฉาก 90° ไม่เฉียง)</li><li>กล้องเห็น<b>เต็มตัว หัวถึงเท้า</b> — ขาดขา = วัดได้แค่เกณฑ์ลงไม่สุด</li><li>วางกล้อง<b>ต่ำ</b> ระดับลำตัว ห่าง ~1.5-2 ม. แนวนอน</li><li>แสงสว่างพอ ฉากหลังโล่ง</li>'
     }
   },
   en: {
@@ -87,8 +87,8 @@ const STR = {
     noReps: "No reps detected",
     finalized: (r, c, a) => `Done: ${r} reps | correct ${c} | avg ${a}`,
     flipFail: "Can't flip camera: ",
-    hintFull: "✓ Full body · 4 criteria",
-    hintUpper: "⚠ Upper body only · show your legs (2 criteria)",
+    hintFull: "✓ Full body · 3 criteria",
+    hintUpper: "⚠ Upper body only · show your legs (1 criterion)",
     targetRepsLabel: "Reps", targetRepsUnit: "reps",
     targetTimeLabel: "Time (sec)", targetTimeUnit: "sec",
     lbTitle: "Ranking", lbEmpty: "No data yet — do a set first",
@@ -131,14 +131,14 @@ const STR = {
       "#btnClearHistory": "Clear all history (local)",
       "#howtoTitle": "How to Use",
       "#guide h2": "Place Camera Like This", "#btnGuideClose": "Got it",
-      "#guideNote": "Full body visible = all 4 criteria checked (elbow/depth/back/knee)",
+      "#guideNote": "Full body visible = all 3 criteria checked (depth/back/knee)",
       "a.linkAccuracy": "See model accuracy →"
     },
     _html: {
-      "#noteClip": 'Upper-body-only clips (no hip/knee/ankle) can only check <b>elbow</b> + <b>depth</b>; back/knee get skipped. For all 4 criteria, film <b>full body from the side</b>.',
+      "#noteClip": 'Upper-body-only clips (no hip/knee/ankle) can only check <b>depth</b>; back/knee get skipped. For all 3 criteria, film <b>full body from the side</b>.',
       "#notePrivacy": 'Processed on-device, no video uploaded · <a href="privacy.html" style="color:var(--accent);">Privacy policy</a>',
-      "#howtoList": '<li>Pick a mode: Freestyle / Reps Goal / Time Attack</li><li>Place the phone to see your <b>full body from the side</b> (all 4 criteria need hip-knee-ankle visible)</li><li>Press "Start Camera" → 3-2-1 countdown → push up</li><li>Watch per-rep results + score; see the summary when done</li><li>Install as app: browser menu → "Add to Home screen"</li>',
-      "#guideList": '<li>Face the camera <b>side-on</b> (90°, not angled)</li><li>Camera sees your <b>full body, head to toe</b> — no legs = only 2 criteria</li><li>Place the camera <b>low</b>, torso level, ~1.5-2 m away, landscape</li><li>Good lighting, clear background</li>'
+      "#howtoList": '<li>Pick a mode: Freestyle / Reps Goal / Time Attack</li><li>Place the phone to see your <b>full body from the side</b> (all 3 criteria need hip-knee-ankle visible)</li><li>Press "Start Camera" → 3-2-1 countdown → push up</li><li>Watch per-rep results + score; see the summary when done</li><li>Install as app: browser menu → "Add to Home screen"</li>',
+      "#guideList": '<li>Face the camera <b>side-on</b> (90°, not angled)</li><li>Camera sees your <b>full body, head to toe</b> — no legs = depth check only</li><li>Place the camera <b>low</b>, torso level, ~1.5-2 m away, landscape</li><li>Good lighting, clear background</li>'
     }
   }
 };
