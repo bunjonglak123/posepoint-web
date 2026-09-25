@@ -26,6 +26,12 @@ export class RepCounter {
     return null;
   }
 
+  // เริ่มรอบใหม่ (ไม่ล้างจำนวนครั้ง) — ใช้ตอนเพิ่งผ่านด่านท่าเตรียม
+  resetCycle() {
+    this.state = "up";
+    this._buf = [];
+  }
+
   _close() {
     const m = repMetrics(this._buf, this.cfg, this.count);
     const frames = this._buf;
@@ -41,6 +47,12 @@ export class CycleCounter extends RepCounter {
     super(cfg);
     this.peak = -Infinity;          // มุมศอกสูงสุดตั้งแต่จบครั้งก่อน (ท่าบน)
     this.valley = Infinity;         // มุมศอกต่ำสุดของครั้งนี้ (ท่าล่าง)
+  }
+
+  resetCycle() {
+    super.resetCycle();
+    this.peak = -Infinity;
+    this.valley = Infinity;
   }
 
   update(f) {

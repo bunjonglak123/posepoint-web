@@ -21,6 +21,7 @@ import { FeatureSmoother, windowFrames } from "../src/smooth.js";
 import { computeFeatures } from "../src/features.js";
 import { RepCounter, CycleCounter } from "../src/counter.js";
 import { evaluateRep } from "../src/criteria.js";
+import { ReadyGate } from "../src/readyGate.js";
 import { CONFIG } from "../src/config.js";
 
 const expand = compact => {           // {index: [x, y, vis]} -> array 33 จุดแบบที่ MediaPipe คืนมา
@@ -30,28 +31,31 @@ const expand = compact => {           // {index: [x, y, vis]} -> array 33 จุ
 };
 
 export const DEFAULTS = { smoothMs: CONFIG.SMOOTH_MS, minFlat: CONFIG.MIN_BODY_FLAT, countDown: CONFIG.ELBOW_DOWN, single: false,
-                          mode: CONFIG.COUNT_MODE || "abs", delta: CONFIG.CYCLE_DELTA ?? 25, travel: CONFIG.MIN_TRAVEL_RATIO };
+                          mode: CONFIG.COUNT_MODE || "abs", delta: CONFIG.CYCLE_DELTA ?? 25, travel: CONFIG.MIN_TRAVEL_RATIO,
+                          ready: true };   // ready = ด่านท่าเตรียมก่อนเริ่มนับ (เหมือนแอป)
 
 export function replayClip(clip, s = DEFAULTS) {
   const aspect = clip.width / clip.height || 1;
   const smoother = new FeatureSmoother(windowFrames(s.smoothMs, clip.fps));
   const cfg = { ...CONFIG, ELBOW_DOWN: s.countDown, CYCLE_DELTA: s.delta, MIN_TRAVEL_RATIO: s.travel };
   const counter = s.mode === "cycle" ? new CycleCounter(cfg) : new RepCounter(cfg);
+  const gate = s.ready ? new ReadyGate(cfg, clip.fps) : null;
   let prevHip = null;
   const reps = [];
   for (const fr of clip.raw) {
     const poses = fr.poses.map(expand);
     // ลำดับเดียวกับ processFrame ใน app.js
     const pick = s.single ? (poses.length ? 0 : -1) : pickPoseIndex(poses, aspect, prevHip, s.minFlat);
-    if (pick < 0) continue;
+    if (pick < 0) { if (gate) gate.miss(); continue; }
     const raw = poses[pick];
     prevHip = hipOf(raw);
     const { landmarks } = selectSide(raw);
     const core = Math.min(landmarks.shoulder.visibility, landmarks.elbow.visibility, landmarks.wrist.visibility);
-    if (core < CONFIG.MIN_VISIBILITY) continue;
+    if (core < CONFIG.MIN_VISIBILITY) { if (gate) gate.miss(); continue; }
     const f = smoother.push(computeFeatures(landmarks));
     f.t = fr.t;
     f.lm = Object.fromEntries(Object.entries(landmarks).map(([k, p]) => [k, [p.x, p.y, p.visibility]]));
+    if (gate && !gate.push(f, counter)) continue;
     const m = counter.update(f);
     if (m) {
       const res = evaluateRep(m, CONFIG);          // ตัดสินด้วยเกณฑ์เดิมเสมอ ไม่ขึ้นกับค่าตั้งการนับ
@@ -84,7 +88,8 @@ if (process.argv[1] && process.argv[1].endsWith("replay.mjs")) {
   const flag = k => { const i = args.indexOf(k); if (i < 0) return false; args.splice(i, 1); return true; };
   const s = { smoothMs: +opt("--smooth-ms", DEFAULTS.smoothMs), minFlat: +opt("--min-flat", DEFAULTS.minFlat),
               countDown: +opt("--count-down", DEFAULTS.countDown), mode: opt("--mode", DEFAULTS.mode),
-              delta: +opt("--delta", DEFAULTS.delta), travel: +opt("--travel", DEFAULTS.travel), single: flag("--single") };
+              delta: +opt("--delta", DEFAULTS.delta), travel: +opt("--travel", DEFAULTS.travel), single: flag("--single"),
+              ready: !flag("--no-ready") };
   const TRUTH = opt("--truth", null), OUT_DIR = flag("--out-dir"), GRID = flag("--grid");
   const sets = args.map(p => ({ path: p, tag: basename(dirname(dirname(p))), clips: JSON.parse(readFileSync(p, "utf8")) }));
   const truth = TRUTH ? JSON.parse(readFileSync(TRUTH, "utf8")) : {};

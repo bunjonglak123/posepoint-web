@@ -4,12 +4,13 @@ import { pickPoseIndex, hipOf } from "./posePick.js";
 import { FeatureSmoother, windowFrames } from "./smooth.js";
 import { computeFeatures } from "./features.js";
 import { makeCounter } from "./counter.js";
+import { ReadyGate } from "./readyGate.js";
 import { repScore, sessionScore } from "./scoring.js";
 import { rank } from "./leaderboard.js";
 import { CONFIG, APP } from "./config.js";
 import { saveSession, listSessions, clearSessions } from "./store.js";
 import * as auth from "./auth.js";
-import { t, getLang, applyStatic, toggleLang } from "./i18n.js?v=12";
+import { t, getLang, applyStatic, toggleLang } from "./i18n.js?v=13";
 import { loadModel } from "./mlModel.js";
 import { judgeRep } from "./judge.js";
 
@@ -131,6 +132,7 @@ function stopStream() {
   if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
 }
 
+let gate = null;                             // ด่านท่าเตรียม: ยังไม่นับจนเห็นท่าบนของวิดพื้น (กันนับตอนวางมือถือ/ลงพื้น)
 let counter = null, results = [], running = false, ready = false, startMs = 0, streak = 0, facing = "environment", newBestFlag = false;
 
 function pulse(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
@@ -178,6 +180,18 @@ function drawOverlay(lm) {
   for (const k of pts) { const [x, y] = px(lm[k]); ctx.beginPath(); ctx.arc(x, y, APP.SKELETON.jointRadius, 0, Math.PI * 2); ctx.fill(); }
 }
 
+// ยังไม่เข้าท่าเตรียม -> บอกผู้ใช้ ; เพิ่งเข้าท่า -> แจ้ง "พร้อม" แล้วเริ่มนับ
+function showGetReady() {
+  statusEl.dataset.waiting = "1";
+  statusEl.textContent = t("getReady");
+}
+function onReady() {
+  delete statusEl.dataset.waiting;
+  showFormAlert(t("readyGo"), true);
+  beep(APP.BEEP.go.freq, APP.BEEP.go.dur);
+  statusEl.textContent = mode === "reps" ? t("startReps", target) : mode === "time" ? t("startTime", fmtTime(target)) : t("tracking");
+}
+
 function processFrame(tsMs, source = video) {
   // MediaPipe VIDEO mode ต้องได้ timestamp เพิ่มขึ้นเสมอ แม้สลับระหว่างวิเคราะห์ไฟล์กับกล้อง
   lastTs = Math.max(tsMs, lastTs + 1);
@@ -188,14 +202,14 @@ function processFrame(tsMs, source = video) {
   if (rawFrames) rawFrames.push({ t: extractT, poses: (poses || []).map(compactPose) });
   // เห็นหลายคน -> เลือกคนที่ลำตัวแนวนอนและอยู่ใกล้คนเดิม (ไม่งั้นจะกระโดดไปนับคนที่ยืนอยู่ด้านหลัง)
   const pick = pickPoseIndex(poses, (source.videoWidth || source.width) / (source.videoHeight || source.height) || 1, prevHip, CONFIG.MIN_BODY_FLAT);
-  if (pick < 0) { drawOverlay(null); return; }
+  if (pick < 0) { drawOverlay(null); if (gate) gate.miss(); return; }
   const raw = poses[pick];
   prevHip = hipOf(raw);
   if (detStats) { detStats.detected += 1; if (poses.length > 1) detStats.multi += 1; }
   const { landmarks } = selectSide(raw);
   // gate core joints — ไม่วาด/ไม่นับถ้า confidence ต่ำ (กันจับ background)
   const core = Math.min(landmarks.shoulder.visibility, landmarks.elbow.visibility, landmarks.wrist.visibility);
-  if (core < CONFIG.MIN_VISIBILITY) { drawOverlay(null); return; }
+  if (core < CONFIG.MIN_VISIBILITY) { drawOverlay(null); if (gate) gate.miss(); return; }
   if (detStats) { detStats.usable += 1; if (detStats.elbow.length < 600) detStats.elbow.push(Math.round(computeFeatures(landmarks).elbowAngle)); }
   drawOverlay(landmarks);
   const f = smoother.push(computeFeatures(landmarks));
@@ -205,6 +219,12 @@ function processFrame(tsMs, source = video) {
     f.lm = Object.fromEntries(Object.entries(landmarks).map(([k, p]) => [k, [+p.x.toFixed(4), +p.y.toFixed(4), +p.visibility.toFixed(3)]]));
   }
   updateBodyHint(f.lowerVis);
+  const wasArmed = gate.armed;
+  if (!gate.push(f, counter)) {
+    if (wasArmed !== gate.armed || !statusEl.dataset.waiting) showGetReady();
+    return;
+  }
+  if (!wasArmed) onReady();
   const m = counter.update(f);
   if (m) {
     const seq = collectFrames ? m.frames : null;      // เก็บก่อน judgeRep ลบเฟรมดิบทิ้ง
@@ -325,7 +345,7 @@ async function flipCamera() {
 }
 
 function beginSession() {
-  counter = makeCounter(CONFIG); results = []; prevHip = null; smoother.setWindow(windowFrames(CONFIG.SMOOTH_MS, APP.DETECT_FPS)); resultsEl.innerHTML = ""; lastEl.textContent = "";
+  counter = makeCounter(CONFIG); gate = new ReadyGate(CONFIG, APP.DETECT_FPS); results = []; prevHip = null; smoother.setWindow(windowFrames(CONFIG.SMOOTH_MS, APP.DETECT_FPS)); resultsEl.innerHTML = ""; lastEl.textContent = "";
   if (resultsEmpty) resultsEmpty.style.display = "";
   repEl.textContent = "0"; streak = 0; updateStats();
   lastDetect = 0; fpsCount = 0; fpsT = performance.now(); fpsEl.textContent = "";
@@ -335,8 +355,7 @@ function beginSession() {
   timerEl.hidden = mode !== "time";
   if (mode === "time") timerEl.textContent = fmtTime(target);
   running = true; startMs = performance.now();
-  statusEl.textContent = mode === "reps" ? t("startReps", target)
-    : mode === "time" ? t("startTime", fmtTime(target)) : t("tracking");
+  showGetReady();
   loop();
 }
 
@@ -461,6 +480,7 @@ window.posepoint = {
     await new Promise((res, rej) => { video.onloadeddata = res; video.onerror = () => rej(new Error("โหลดวิดีโอไม่ได้")); });
     resize(); beginSession(); running = false;          // หยุด loop อัตโนมัติ แล้วเดินเฟรมเอง
     smoother.setWindow(windowFrames(CONFIG.SMOOTH_MS, fps));   // หน้าต่างตาม fps ที่เดินเฟรมจริง
+    gate = new ReadyGate(CONFIG, fps);                         // ด่านท่าเตรียมนับเวลาตาม fps ของคลิป
     const step = 1 / fps;
     // คัดลอกเฟรมลง canvas ก่อนตรวจจับ: ได้ภาพจริงแม้เบราว์เซอร์ไม่ได้ render วิดีโอบนจอ
     const frame = document.createElement("canvas");
