@@ -32,10 +32,7 @@ const STR = {
     noFirebase: 'ยังไม่ได้ตั้งค่า Firebase — แอปใช้งานแบบในเครื่องได้ปกติ ใส่ค่าใน <code>src/firebase-config.js</code> เพื่อเปิด account + cloud',
     // form alert (banner สั้น มองไกลได้)
     alertElbow: "ศอกไม่ลึก!", alertDepth: "ลงไม่สุด!", alertBack: "หลังแอ่น!", alertKnee: "เข่างอ!",
-    // voice (พูดเต็ม)
-    voiceElbow: "งอศอกให้ลึกกว่านี้", voiceDepth: "ลงให้ลึกกว่านี้",
-    voiceBack: "หลังแอ่น เกร็งลำตัว", voiceKnee: "เหยียดเข่าให้ตรง",
-    alertForm: "ท่ายังไม่ถูก!", voiceForm: "ปรับท่าให้ถูกต้อง",
+    alertForm: "ท่ายังไม่ถูก!",
     // โมเดล ML
     mlReady: (v) => `ใช้โมเดล ML 3 ตัวช่วยกันตัดสิน: RF + LSTM + CNN (รุ่น ${v})`, mlLoading: "กำลังโหลดโมเดล ML…",
     mlFallback: "โหลดโมเดล ML ไม่ได้ — ใช้เกณฑ์เชิงกฎแทน", mlOff: "ใช้เกณฑ์เชิงกฎที่ปรับจากป้ายของคน (แม่นกว่า ML ในการทดสอบ)",
@@ -61,7 +58,7 @@ const STR = {
       "#btnSignIn": "เข้าสู่ระบบ", "#btnSignUp": "สมัคร",
       "#btnSyncCloud": "ซิงค์ขึ้นคลาวด์", "#btnSignOut": "ออกจากระบบ",
       "#authSignedIn > p": "เข้าสู่ระบบในชื่อ",
-      "#settingsTitle": "ตั้งค่า", "#soundLabel": "เสียงตอนนับ/นับถอยหลัง/พูดเตือน", "#mlLabel": "ใช้โมเดล ML ตัดสินท่า (ทดลอง)",
+      "#settingsTitle": "ตั้งค่า", "#soundLabel": "เสียงบี๊บ (นับ/นับถอยหลัง/เตือนท่าผิด)", "#mlLabel": "ใช้โมเดล ML ตัดสินท่า (ทดลอง)",
       "#btnClearHistory": "ล้างประวัติทั้งหมด (ในเครื่อง)",
       "#howtoTitle": "วิธีใช้งาน",
       "#guide h2": "วางกล้องแบบนี้", "#btnGuideClose": "เข้าใจแล้ว",
@@ -105,9 +102,7 @@ const STR = {
     shareText: (r, c, s, tm) => `PosePoint 💪 ${r} push-ups (${c} good form) score ${s} in ${tm}\nTry it: https://bunjonglak123.github.io/posepoint-web/`,
     noFirebase: 'Firebase not configured — the app works locally. Fill <code>src/firebase-config.js</code> to enable account + cloud.',
     alertElbow: "ELBOWS!", alertDepth: "GO LOWER!", alertBack: "BACK SAGGING!", alertKnee: "KNEES BENT!",
-    voiceElbow: "Bend your elbows more", voiceDepth: "Go lower",
-    voiceBack: "Keep your back straight", voiceKnee: "Straighten your knees",
-    alertForm: "CHECK FORM!", voiceForm: "Fix your form",
+    alertForm: "CHECK FORM!",
     mlReady: (v) => `3 ML models judge together: RF + LSTM + CNN (v${v})`, mlLoading: "Loading ML model…",
     mlFallback: "ML model unavailable — using rule-based check", mlOff: "Using rules calibrated on human labels (beat ML in testing)",
     _: {
@@ -131,7 +126,7 @@ const STR = {
       "#btnSignIn": "Sign In", "#btnSignUp": "Sign Up",
       "#btnSyncCloud": "Sync to Cloud", "#btnSignOut": "Sign Out",
       "#authSignedIn > p": "Signed in as",
-      "#settingsTitle": "Settings", "#soundLabel": "Sound (count / countdown / voice)", "#mlLabel": "Judge form with ML model (experimental)",
+      "#settingsTitle": "Settings", "#soundLabel": "Beeps (count / countdown / form alerts)", "#mlLabel": "Judge form with ML model (experimental)",
       "#btnClearHistory": "Clear all history (local)",
       "#howtoTitle": "How to Use",
       "#guide h2": "Place Camera Like This", "#btnGuideClose": "Got it",

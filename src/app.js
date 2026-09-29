@@ -10,7 +10,7 @@ import { rank } from "./leaderboard.js";
 import { CONFIG, APP } from "./config.js";
 import { saveSession, listSessions, clearSessions } from "./store.js";
 import * as auth from "./auth.js";
-import { t, getLang, applyStatic, toggleLang } from "./i18n.js?v=13";
+import { t, getLang, applyStatic, toggleLang } from "./i18n.js?v=14";
 import { loadModel } from "./mlModel.js";
 import { judgeRep } from "./judge.js";
 
@@ -75,22 +75,6 @@ function primeAudio() {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === "suspended") audioCtx.resume();
   } catch { /* ignore */ }
-  // ปลุก speechSynthesis ด้วย (iOS ต้อง speak ครั้งแรกใน gesture)
-  try {
-    if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); }
-  } catch { /* ignore */ }
-}
-
-// เสียงพูดแจ้งฟอร์ม — on-device TTS ตามภาษาแอป
-function speak(text) {
-  if (!soundOn || !("speechSynthesis" in window)) return;
-  try {
-    speechSynthesis.cancel();                       // ตัดคิวเก่า กันพูดซ้อน
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = getLang() === "th" ? "th-TH" : "en-US";
-    u.rate = 1.1;
-    speechSynthesis.speak(u);
-  } catch { /* ignore */ }
 }
 
 // แบนเนอร์ใหญ่กลางจอกล้อง — เห็นจากระยะวิดพื้น ไม่ต้องเลื่อนจอ
@@ -103,7 +87,6 @@ function showFormAlert(text, ok) {
   alertTimer = setTimeout(() => { formAlert.hidden = true; }, ok ? APP.ALERT_MS.ok : APP.ALERT_MS.bad);
 }
 const ALERT_KEY = { elbow: "alertElbow", depth: "alertDepth", back: "alertBack", knee: "alertKnee", form: "alertForm" };
-const VOICE_KEY = { elbow: "voiceElbow", depth: "voiceDepth", back: "voiceBack", knee: "voiceKnee", form: "voiceForm" };
 
 // ---------- โมเดล ML ตัดสินท่า (Random Forest, รันในเบราว์เซอร์) ----------
 let mlModel = null, mlError = false;
@@ -245,11 +228,9 @@ function renderRep(res) {
   // แจ้งบนจอกล้อง + เสียงพูด — คนถือถ่าย/คนวิดเห็นและได้ยินโดยไม่ต้องเลื่อนจอ
   if (ok) {
     showFormAlert(`✓ ${counter.count}`, true);
-    if (APP.VOICE.countReps) speak(String(counter.count));
   } else {
     const key = res.failed[0];                       // แจ้งจุดผิดแรก (สำคัญสุด)
     showFormAlert(t(ALERT_KEY[key] || "alertDepth"), false);
-    if (!APP.VOICE.mute.includes(key)) speak(t(VOICE_KEY[key] || "voiceDepth"));
   }
   updateStats();
   lastEl.textContent = `#${res.index} ${res.verdict}` + (ok ? "" : ": " + res.failed.join(", "));
